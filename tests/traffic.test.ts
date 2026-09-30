@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createTraffic,advanceTraffic} from '../shared/traffic';import {newRoom} from '../server/src/simulation';
+test('AI traffic moves, follows lane direction and slows for a bus ahead',()=>{const traffic=createTraffic();const car=traffic[0];car.x=100;const bus=newRoom().buses[0];bus.x=120;bus.z=car.z;for(let n=0;n<120;n++)advanceTraffic([car],[bus],1/30);assert.ok(car.x>100);assert.ok(car.x<bus.x-5);assert.ok(car.speed<1);});
