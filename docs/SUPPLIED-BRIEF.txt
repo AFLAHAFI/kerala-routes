@@ -1,0 +1,986 @@
+KERALA ROUTES — V1: FIRST JOURNEY
+Main goal: prove that this works:
+Real player drives a Kerala bus → real players wait at stops → board the bus → travel together → get off → walk around → complete missions → catch another real-player bus.
+
+For V1, don't try to reproduce Kozhikode at 1:1 scale. We use real place names and their general geographical relationship, but compress distances to approximately 1:5–1:8 scale. That makes the browser game small enough for normal PCs and phones.
+
+
+
+
+
+4.4
+
+
+
+
+
+
+
+4.5
+
+
+
+4.3
+
+
+
+
+
+
+
+4.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Use two fingers to move the map
+Use ctrl + scroll to zoom the map
+
+
+
+
+KSRTC Terminal
+
+
+Mananchira4.4•Lake
+
+
+SM Street
+
+
+Kozhikode Beach4.5•Beach
+
+
+Medical College4.3•Medical schoolOpen
+
+
+Kunnamangalam
+
+
+NIT Calicut / Kattangal4.5•Institute of technologyClosed
+
+
+
+  
+Expand 
+
+
+
+
+
+V1 map
+We create one connected world with two playable bus corridors.
+Route A — City & Beach
+KSRTC Terminal
+     ↓
+Mavoor Road
+     ↓
+Mananchira
+     ↓
+SM Street area
+     ↓
+Kozhikode Beach
+
+This is the sightseeing/exploration route.
+Route B — City & Suburban
+KSRTC Terminal
+     ↓
+Medical College area
+     ↓
+Kunnamangalam
+     ↓
+Kattangal
+     ↓
+NIT Calicut area
+
+This gives us longer driving, more greenery and a change from dense city roads.
+These are game routes built around real locations, not a claim that they reproduce a current official KSRTC timetable or every real bus stop.
+1. V1 multiplayer size
+Keep the first server deliberately small:
+Maximum players: 12
+
+Maximum active buses: 2
+
+Driver slots:       2
+Passenger slots:   10
+
+That is enough to prove the idea without making the free server struggle.
+When somebody joins:
+KERALA ROUTES
+
+Online: 8 / 12
+
+[ PLAY AS PASSENGER ]
+
+Drivers:
+Bus 01 — Aflah
+Bus 02 — Driver slot available
+
+[ APPLY TO DRIVE ]
+
+Being a driver should not be a permanent account type.
+A player becomes a driver by:
+1. Going to the bus terminal.
+2. Finding an available bus.
+3. Pressing Become Driver.
+4. Sitting in the driver seat.
+5. Selecting a route.
+6. Starting the service.
+When they leave the server, abandon the bus for too long or end their shift, the bus becomes available again.
+2. Real passenger system
+Passengers are also actual players.
+At a bus stop:
+KUNNAMANGALAM
+─────────────
+Route:
+Kozhikode → Kattangal
+
+Next running bus:
+Bus 02
+
+Passengers waiting: 3
+
+When the real-player bus approaches, they see it physically arriving.
+Passenger presses:
+[E] BOARD BUS
+
+On mobile:
+[ BOARD ]
+
+Their character walks/teleports through the bus door and is attached to a seat or standing position.
+Inside:
+Current Stop:
+Medical College
+
+Next:
+Kunnamangalam
+
+Your destination:
+Kattangal
+
+[ Request Stop ]
+[ Leave Seat ]
+
+The bus is being driven by another real person the entire time.
+3. Driver system
+Driver view includes:
+Speed: 37 km/h
+
+NEXT STOP
+Kunnamangalam
+350 m
+
+Passengers
+6 / 18
+
+Route progress
+██████░░░ 65%
+
+Doors: CLOSED
+
+Controls:
+W / ↑     Accelerator
+S / ↓     Brake / Reverse
+A / D     Steering
+
+Space     Hand brake
+E         Exit seat
+F         Door
+H         Horn
+C         Camera
+L         Headlights
+
+Mobile gets:
+[steering]
+[brake] [accelerator]
+
+Door
+Horn
+Camera
+
+No complicated manual gearbox in V1.
+Start with automatic transmission.
+4. Stops
+Every official game stop has a stop zone.
+Example:
+{
+  id: "kunnamangalam",
+  name: "Kunnamangalam",
+  malayalamName: "കുന്നമംഗലം",
+  position: { x: 540, y: 0, z: -210 },
+  stopRadius: 14,
+  explorationZone: true
+}
+
+Driver can stop at every marked stop.
+The game detects:
+Bus inside stop zone
++
+Speed < 2 km/h
++
+Door opened
+=
+VALID STOP
+
+Then passengers can board or leave.
+5. Exploration locations
+Not every bus stop needs a huge explorable area.
+V1 should have four detailed exploration areas.
+Mananchira
+Walk around a stylized public square area.
+Mission:
+HERITAGE WALK
+
+Discover:
+✓ Square
+□ Historic-style building
+□ Kerala tree
+□ City landmark
+
+Reward: 100 Kerala Points
+
+SM Street
+Create an original shopping street inspired by Kozhikode's commercial atmosphere. SM Street is an established historic commercial hub known for shops and Kozhikodan foods. Kerala Tourism
+Activities:
+Discover local food
+Photograph street architecture
+Find three hidden Kerala symbols
+
+Don't copy individual real shops or advertising boards.
+Kozhikode Beach
+This should be the best-looking V1 exploration area.
+The real beach is known for its sunset setting and historic piers. Kozhikode District Website
+Activities:
+Photography mission
+Beach cleanup mission
+Find hidden seashell
+Discover old-pier viewpoint
+Watch sunset
+
+Kattangal
+Green suburban area.
+Activities:
+Plant photography
+Bird photography
+Cycle challenge
+Hidden-object mission
+
+Keep NIT itself mostly as an exterior landmark/area rather than trying to recreate the real campus exactly.
+6. First V1 missions
+Only build about 8 missions initially:
+1. First Bus Journey
+Ride from KSRTC Terminal to Mananchira.
+
+2. Sunset Photographer
+Take a picture at Kozhikode Beach.
+
+3. Mittayi Explorer
+Discover three food-related objects around SM Street.
+
+4. Clean Coast
+Collect 5 litter objects in the beach mission zone.
+
+5. City Heritage
+Discover three locations around Mananchira.
+
+6. Green Kozhikode
+Photograph three different plants.
+
+7. Passenger Challenge
+Complete a full bus journey without driving.
+
+8. First Driver Shift
+Complete one full route and stop correctly at every stop.
+
+No huge storyline yet.
+7. Kerala Journal
+Press J:
+KERALA JOURNAL
+
+KOZHIKODE
+────────────
+
+Places       3 / 7
+Food         2 / 5
+Plants       4 / 8
+Wildlife     1 / 6
+Culture      2 / 5
+Transport    3 / 5
+
+Discovering things gives:
+Kerala Points — KP
+Example:
+Visit new stop        +20 KP
+Complete bus trip     +75 KP
+Correct driver stop   +10 KP
+Mission              +100 KP
+New journal item      +25 KP
+
+8. Buses for V1
+Only make two bus models.
+Bus 01
+Kerala government-bus-inspired vehicle.
+Use fictional branding:
+KERALA ROUTES TRANSIT
+not official KSRTC logos initially.
+Bus 02
+Kerala private-line-bus-inspired vehicle.
+Example fictional company:
+MALABAR LINE
+Later, if you want exact KSRTC branding or a real private operator's branding in a public/commercial game, we should check permission/licensing first.
+Both buses can use the same driving physics initially.
+9. Environment
+V1 should include:
+Kerala houses
+small shops
+bus shelters
+coconut trees
+banana plants
+electric poles
+road signs
+autos
+cars
+motorcycles
+roadside walls
+small bridges
+city buildings
+green areas
+Arabian Sea
+
+But don't model every building separately.
+Use reusable assets.
+Example:
+house_01.glb
+house_02.glb
+shop_01.glb
+busstop_01.glb
+coconut_01.glb
+coconut_02.glb
+auto.glb
+bike.glb
+
+That massively reduces file size.
+10. Weather
+V1 needs only:
+☀ Clear
+☁ Cloudy
+🌧 Rain
+🌇 Evening
+
+Later V2 can add:
+heavy monsoon
+fog
+storms
+night weather
+
+Rain should make the road slightly reflective and add rain particles.
+Don't implement realistic aquaplaning yet.
+11. AI traffic
+Other vehicles do not need to be real players.
+AI:
+Autos
+Cars
+Motorcycles
+Small trucks
+
+They follow waypoint lanes.
+Keep about:
+Desktop: 15–25 active AI vehicles
+Mobile:   8–12
+
+Spawn/despawn them around the player.
+12. No open chat in V1
+Because this will be a public multiplayer game, I would not build stranger text or voice chat into V1.
+Use quick messages:
+Hello!
+Thanks!
+Bus coming!
+Wait please!
+Getting off here.
+Good driving!
+
+and simple emotes.
+That also makes moderation much easier.
+13. Technology — completely free V1 stack
+I recommend:
+3D Engine
+Babylon.js
+
+Language
+TypeScript
+
+Frontend
+Vite
+
+Multiplayer
+Node.js
+Express
+Socket.IO
+
+Database
+Supabase
+
+Frontend Hosting
+Cloudflare Pages
+
+Multiplayer Hosting
+Render Free
+
+Source Control
+GitHub
+
+Babylon.js is open source under Apache 2.0. GitHub
+Supabase currently has a $0 Free plan with a 500 MB database, 1 GB file storage and up to 50,000 monthly active users within its listed limits—more than enough for our prototype. Supabase
+Cloudflare Pages' free tier allows up to 500 builds per month and 20,000 files, while static asset requests are free. Cloudflare Developer Docs
+Render currently allows free web services and supports WebSockets. Its free service sleeps after 15 minutes without incoming HTTP or WebSocket activity, so it is excellent for testing but not what I would rely on forever if the game becomes popular. Render
+14. Free assets
+We can first make everything from simple shapes.
+Later use free CC0 assets.
+Poly Haven says its downloadable assets are CC0 and may be used commercially. Poly Haven
+Individual free Kenney asset packs are also released under CC0, though you should check each particular asset page rather than assuming every bundle download is free. Kenney
+For the Kerala-specific objects, Astra can create simple geometry programmatically first.
+That means we don't need to buy anything to build the prototype.
+15. Project structure
+Tell Astra to make this:
+kerala-routes/
+│
+├── client/
+│   ├── public/
+│   │   ├── models/
+│   │   │   ├── buses/
+│   │   │   ├── buildings/
+│   │   │   ├── vehicles/
+│   │   │   └── nature/
+│   │   │
+│   │   ├── textures/
+│   │   ├── sounds/
+│   │   └── icons/
+│   │
+│   └── src/
+│       ├── game/
+│       │   ├── Game.ts
+│       │   ├── World.ts
+│       │   ├── Player.ts
+│       │   ├── Bus.ts
+│       │   ├── VehicleController.ts
+│       │   ├── PassengerSystem.ts
+│       │   ├── StopSystem.ts
+│       │   ├── MissionSystem.ts
+│       │   ├── WeatherSystem.ts
+│       │   └── TrafficSystem.ts
+│       │
+│       ├── multiplayer/
+│       │   ├── socket.ts
+│       │   └── interpolation.ts
+│       │
+│       ├── data/
+│       │   ├── stops.ts
+│       │   ├── routes.ts
+│       │   ├── missions.ts
+│       │   └── journal.ts
+│       │
+│       ├── ui/
+│       ├── mobile/
+│       └── main.ts
+│
+├── server/
+│   └── src/
+│       ├── index.ts
+│       ├── rooms.ts
+│       ├── players.ts
+│       ├── buses.ts
+│       ├── stops.ts
+│       └── validation.ts
+│
+├── shared/
+│   └── types.ts
+│
+├── README.md
+└── .gitignore
+
+16. Multiplayer architecture
+This part is very important.
+The server must own the important game state.
+Don't let every browser decide everything.
+Server holds:
+Player ID
+Player position
+Player role
+Bus driver
+Bus position
+Bus passengers
+Current route
+Stops
+Mission completion
+
+Network:
+PLAYER A
+   ↓
+input
+   ↓
+SERVER
+   ↓
+authoritative state
+   ↓
+PLAYER A
+PLAYER B
+PLAYER C
+PLAYER D
+
+Client sends:
+accelerate
+brake
+steer
+board
+exit
+openDoor
+
+Server checks it and broadcasts the result.
+This prevents one player from accidentally controlling another driver's bus.
+17. Network rate
+Do not send 60 network messages every second.
+Use approximately:
+Game rendering:
+60 FPS
+
+Player network:
+10–15 updates/sec
+
+Bus network:
+15–20 updates/sec
+
+Other clients interpolate smoothly between updates.
+Example:
+Server bus position:
+
+A -------- B
+
+Client renders:
+
+A -> -> -> -> B
+
+instead of jumping.
+18. Mobile optimisation
+This is essential.
+Use:
+Low-poly models
+1K textures maximum
+compressed GLB files
+LOD
+limited shadows
+object pooling
+distance culling
+small map
+few AI vehicles
+instanced trees
+
+V1 target:
+Desktop:
+45–60 FPS
+
+Normal Android:
+25–40 FPS
+
+Don't chase ultra-realistic graphics.
+The style should be:
+colourful semi-realistic low-poly Kerala
+
+That will look good and actually run.
+19. Build it in this exact order
+Do not tell Astra to generate the entire game in one response. Even a strong coding model will produce a mess if we ask it to simultaneously create the map, multiplayer, vehicle physics, missions and UI.
+Build these stages in order:
+1. Project foundation — Create Vite + TypeScript + Babylon.js client and Node/Socket.IO server. Get a green ground plane and one controllable player running.
+2. Walking character — WASD, third-person camera, collision, sprint, mobile joystick.
+3. Prototype Kozhikode map — roads, KSRTC terminal, Mananchira, beach, Medical College, Kunnamangalam and Kattangal represented initially by simple buildings and labels.
+4. One bus — steering, acceleration, braking, camera, wheels, doors and driver seat.
+5. Multiplayer players — two browsers can join and see one another walking.
+6. Multiplayer bus — one player becomes driver; everyone else sees the bus moving smoothly.
+7. Passenger boarding — player enters/leaves bus and moves correctly with it.
+8. Stops — stop zones, Malayalam/English names, arrival detection and next-stop UI.
+9. Second bus — allow two simultaneous real drivers.
+10. Routes — City/Beach route and Kattangal route.
+11. Exploration — allow passengers to get off and walk around mission zones.
+12. Missions + Kerala Points — implement the 8 V1 missions.
+13. Weather — clear/cloud/rain/evening.
+14. AI traffic — simple waypoint traffic.
+15. Mobile UI — touch joystick, driving controls and responsive menus.
+16. Supabase save system — save Kerala Points, journal and completed missions.
+17. Optimisation — GLB compression, instancing, culling and low/mobile graphics settings.
+18. Deployment — Cloudflare Pages + Render + Supabase.
+19. Multiplayer test — test 2 players, then 4, then 8, then 12. Don't immediately test 30.
+20. V1 release — only after driver/passenger switching, reconnects, boarding and bus synchronization are stable.
+20. Start commands
+Install current Node.js LTS and Git first.
+Then:
+mkdir kerala-routes
+cd kerala-routes
+
+npm create vite@latest client -- --template vanilla-ts
+
+cd client
+npm install
+npm install @babylonjs/core @babylonjs/loaders socket.io-client
+cd ..
+
+mkdir server
+cd server
+npm init -y
+npm install express socket.io cors
+npm install -D typescript tsx @types/node @types/express
+
+Then run:
+cd client
+npm run dev
+
+and server:
+cd server
+npx tsx src/index.ts
+
+Initially use:
+Client:
+http://localhost:5173
+
+Server:
+http://localhost:3000
+
+21. MASTER ASTRA PROMPT
+Copy everything below into Astra when we start development:
+PROJECT: KERALA ROUTES — V1 FIRST JOURNEY
+You are the lead game engineer for a browser-based 3D multiplayer Kerala bus and exploration game.
+Build this project carefully in stages. Do not replace working systems unnecessarily. Do not leave placeholder pseudo-code when functioning TypeScript code can be written.
+CORE CONCEPT
+Kerala Routes is a multiplayer 3D browser game based on Kozhikode district, Kerala, India.
+Players are real online players.
+Some players become bus drivers. Other players are passengers.
+A real driver physically drives a bus between game bus stops. Real passengers wait at stops, see the bus arriving, board it, travel inside it, get off at another stop and explore the environment on foot.
+Players can then catch another player-driven bus.
+The game must not be a copy of Little Kerala or another existing game. Create an original visual identity, UI and gameplay implementation.
+V1 WORLD
+Use a compressed stylized version of real Kozhikode locations rather than a 1:1 map.
+Include:
+- KSRTC Terminal / Mavoor Road area
+- Mananchira
+- SM Street area
+- Kozhikode Beach
+- Government Medical College area
+- Kunnamangalam
+- Kattangal / NIT Calicut area
+Use Malayalam and English place labels where possible.
+Actual geographical distances must be compressed approximately 1:5 to 1:8 for gameplay and browser performance.
+Do not claim the fictional game routes are current official KSRTC schedules.
+ROUTE A
+KSRTC Terminal → Mavoor Road → Mananchira → SM Street area → Kozhikode Beach.
+ROUTE B
+KSRTC Terminal → Medical College area → Kunnamangalam → Kattangal → NIT Calicut area.
+MULTIPLAYER
+Maximum V1 room size: 12 players.
+Maximum two active player-driven buses.
+Driver slots are temporary.
+A player can claim an available bus only while the bus is parked at the appropriate terminal/driver spawn area.
+Server must be authoritative for:
+- player identity
+- player role
+- player position validation
+- bus ownership
+- bus position/state
+- passengers
+- boarding
+- leaving
+- routes
+- stops
+- mission rewards
+- Kerala Points
+Use Node.js + Express + Socket.IO.
+Do not trust arbitrary state sent by clients.
+CLIENT
+Use:
+- Vite
+- TypeScript
+- Babylon.js
+- Socket.IO Client
+Use modular classes rather than placing the entire game in one file.
+PLAYER
+Third-person character.
+Desktop:
+WASD movement.
+Shift sprint.
+E interact.
+C camera.
+Mobile:
+virtual joystick and contextual interaction buttons.
+Character must collide with the world.
+DRIVER
+Driver enters the driver's seat.
+Implement:
+- accelerator
+- brake/reverse
+- steering
+- handbrake
+- horn
+- headlights
+- door
+- camera switching
+- exit driver seat
+Use automatic transmission for V1.
+Driving should feel arcade-realistic, not like a racing car.
+BUS
+Initially support two buses using one shared underlying vehicle system.
+Bus 01: fictional government-bus-inspired Kerala vehicle.
+Bus 02: fictional private-line-bus-inspired Kerala vehicle.
+Do not require copyrighted company logos or exact branding.
+Each bus contains:
+- driver seat
+- passenger seats
+- standing passenger positions
+- entry door
+- exit interaction
+- route display
+PASSENGERS
+A passenger approaches a stopped bus with an open door.
+Press E or tap BOARD.
+Server verifies:
+- bus exists
+- bus speed is near zero
+- passenger is near door
+- door is open
+- bus has space
+Passenger is then attached to an available seat/standing anchor.
+Other players must see them travelling correctly with the bus.
+Passenger can select destination and request a stop.
+STOPS
+Store stops as data, not hardcoded individually into game logic.
+Each stop requires:
+- id
+- English name
+- Malayalam name
+- world position
+- stop radius
+- routes
+- exploration flag
+A valid stop occurs when:
+- bus is inside the stop zone
+- speed < 2 km/h
+- door is opened
+EXPLORATION
+Detailed V1 exploration zones:
+1. Mananchira
+2. SM Street area
+3. Kozhikode Beach
+4. Kattangal
+Exploration activities:
+- photography
+- heritage discovery
+- plants
+- food discovery
+- environmental cleanup
+- hidden objects
+- simple cycling
+Do not create combat.
+MISSIONS
+Implement:
+- First Bus Journey
+- Sunset Photographer
+- Mittayi Explorer
+- Clean Coast
+- City Heritage
+- Green Kozhikode
+- Passenger Challenge
+- First Driver Shift
+KERALA POINTS
+Rewards:
+New stop +20 KP.
+Full passenger journey +75 KP.
+Correct driver stop +10 KP.
+New journal item +25 KP.
+Mission approximately +100 KP.
+Server validates rewards so clients cannot simply send themselves points.
+KERALA JOURNAL
+Categories:
+- Places
+- Food
+- Plants
+- Wildlife
+- Culture
+- Transport
+ENVIRONMENT
+Create a colourful semi-realistic low-poly Kerala visual style.
+Include reusable:
+- houses
+- local-style shops
+- bus shelters
+- coconut trees
+- banana plants
+- electric poles
+- walls
+- road signs
+- bridges
+- autos
+- cars
+- motorcycles
+Use Babylon.js instancing wherever appropriate.
+TRAFFIC
+AI traffic:
+- autos
+- cars
+- motorcycles
+- small trucks
+Use waypoint paths.
+Spawn only near players.
+Desktop maximum around 15–25 active vehicles.
+Mobile approximately 8–12.
+WEATHER
+V1:
+- clear
+- cloudy
+- rain
+- evening
+Implement lightweight particle rain and optional wet-road material effect.
+MULTIPLAYER NETWORKING
+Render client at normal FPS.
+Network player updates approximately 10–15 Hz.
+Bus state approximately 15–20 Hz.
+Interpolate remote positions/rotations instead of snapping.
+Do not transmit unnecessary objects every frame.
+UI
+Main menu:
+KERALA ROUTES
+Drive. Travel. Explore.
+Buttons:
+- Play
+- Settings
+- How to Play
+Lobby should show:
+- online players
+- buses
+- driver availability
+Passenger HUD:
+- location
+- next stop
+- destination
+- Kerala Points
+Driver HUD:
+- speed
+- current route
+- next stop
+- distance
+- passenger count
+- door state
+SOCIAL SAFETY
+Do not implement public stranger voice chat or free-form text chat.
+Implement only optional preset quick messages/emotes.
+DATABASE
+Prepare Supabase integration for:
+- anonymous/player ID
+- display name
+- Kerala Points
+- journal discoveries
+- mission completion
+- settings
+Never store passwords manually.
+Do not require unnecessary personal information.
+PERFORMANCE
+Must target desktop and modern Android browsers.
+Implement:
+- low-poly meshes
+- instancing
+- distance culling
+- object pooling
+- texture compression where possible
+- GLB assets
+- low/mobile graphics profile
+- limited dynamic shadows
+Avoid gigantic textures and unoptimized models.
+CODE QUALITY
+Use clear TypeScript types.
+Divide systems into modules.
+Client and server must share network types where practical.
+Validate all Socket.IO payloads server-side.
+Handle disconnects:
+If driver disconnects, safely stop/release the bus.
+If passenger disconnects, remove them from the bus.
+Handle reconnects without duplicating players.
+Prevent two players from controlling one bus.
+Prevent boarding a moving bus.
+Prevent duplicate reward requests.
+PROJECT STRUCTURE
+Use client/, server/, shared/ and documented asset folders.
+Include README.md containing installation, local development, build and deployment instructions.
+DEVELOPMENT RULE
+BUILD IN PHASES.
+Do not attempt all systems at once.
+Start with PHASE 1 ONLY:
+1. Create project structure.
+2. Create Vite TypeScript Babylon.js client.
+3. Create Node/Express/Socket.IO server.
+4. Show a simple Kerala-style test environment.
+5. Create third-person player controller.
+6. Connect two browser windows to the multiplayer server.
+7. Synchronize the two walking players.
+When Phase 1 works, stop and explain:
+- files created
+- how to install
+- how to start client
+- how to start server
+- what I should test
+Do not continue to vehicle development until Phase 1 is confirmed working.
+Never delete or rewrite working code unnecessarily in later phases.
+Keep a CHANGELOG.md documenting each phase.
+
+That final instruction — stop after Phase 1 — is important. It will keep Astra from creating 50 half-working files at once.
+What your very first playable test should look like
+Don't expect the bus immediately.
+Our first successful build should simply be:
+Browser 1
+Player: AFLAH
+
+Browser 2
+Player: TEST02
+
+Both enter Kozhikode prototype map.
+
+AFLAH walks.
+TEST02 sees AFLAH walking.
+
+TEST02 walks.
+AFLAH sees TEST02 walking.
+
+SUCCESS ✓
+
+Then:
+Phase 2
+        ↓
+BUS DRIVING
+
+Phase 3
+        ↓
+DRIVER MULTIPLAYER
+
+Phase 4
+        ↓
+REAL PASSENGERS
+
+Phase 5
+        ↓
+BUS STOPS
+
+Phase 6
+        ↓
+EXPLORATION
+
+Phase 7
+        ↓
+MISSIONS
+
+Phase 8
+        ↓
+ONLINE RELEASE
