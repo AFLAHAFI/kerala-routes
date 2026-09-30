@@ -1,0 +1,4 @@
+import type {BusState} from './types';
+export type TrafficState={id:string;kind:'car'|'auto'|'bike'|'truck';x:number;z:number;yaw:number;speed:number;cruise:number};
+export function createTraffic():TrafficState[]{return Array.from({length:12},(_,i)=>({id:'traffic-'+i,kind:(['car','auto','bike','truck'] as const)[i%4],x:-65+i*94,z:i%2?3.4:-3.4,yaw:i%2?-Math.PI/2:Math.PI/2,speed:0,cruise:6+(i%3)}));}
+export function advanceTraffic(traffic:TrafficState[],buses:BusState[],dt:number){for(const car of traffic){const direction=car.yaw>0?1:-1;const blocked=[...buses,...traffic.filter(t=>t.id!==car.id)].some(v=>Math.abs(v.z-car.z)<2.8&&(v.x-car.x)*direction>0&&(v.x-car.x)*direction<(('passengers' in v)?15:8));const desired=blocked?0:car.cruise;car.speed+=Math.max(-10*dt,Math.min(3*dt,desired-car.speed));car.x+=direction*car.speed*dt;if(car.x>1115){car.x=1115;car.z=3.4;car.yaw=-Math.PI/2;}else if(car.x< -86){car.x=-86;car.z=-3.4;car.yaw=Math.PI/2;}}}
