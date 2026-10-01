@@ -46,4 +46,4 @@ Node.js 22.12+ required. No paid assets or API calls are required by the game co
 
 ## Release status
 
-This is a V1 playtest build, not a commercial release or a guarantee of 60 FPS on every phone. See `TEST-REPORT.md` for measured checks and limitations. GitHub Pages, Render and Supabase have NOT been configured in your accounts yet. The earlier chatgpt.site deployment has not been replaced.
+This is a V1 playtest build, not a commercial release or a guarantee of 60 FPS on every phone. See `TEST-REPORT.md` for measured checks and limitations. The online playtest is deployed at https://aflahafi.github.io/kerala-routes/ using GitHub Pages, Render Free and Supabase Free. The server health endpoint is https://kerala-routes-server.onrender.com/health. Start with 2–4 players and measure performance on real devices.
