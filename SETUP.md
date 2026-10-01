@@ -1,6 +1,6 @@
 # Kerala Routes V1 — setup and playtest
 
-This package contains the complete source, a built browser client, a built Node server, Supabase SQL, a Render Blueprint and a GitHub Pages workflow. The new V1 has NOT been deployed to your accounts. The old chatgpt.site link remains the earlier release.
+This package contains the complete source, a built browser client, a built Node server, Supabase SQL, a Render Blueprint and a GitHub Pages workflow. Deployment uses AFLAHAFI/kerala-routes, Render kerala-routes-server and Supabase kerala-routes-v1. The public page is published by the Pages workflow.
 
 ## 1. Try the game on your Windows PC
 
@@ -34,8 +34,10 @@ Never add a real `.env` or Supabase secret key to the repository. `.gitignore` e
 2. Choose a nearby available region. Store the database password privately.
 3. Open **SQL Editor → New query**.
 4. Open `supabase/001_profiles.sql` from this package, paste the full SQL and click **Run**.
-5. In the project's API settings, copy your **Project URL** and **secret API key** (usually begins `sb_secret_`). A legacy service-role key is supported too, but never use a publishable/anon key for the server adapter.
-6. Keep those values for Render's environment settings. Do not paste the secret into a browser build, GitHub Actions variable or public chat.
+5. For the deployed function adapter, generate a random 256-bit server token. Replace `PROFILE_TOKEN_SHA256` in `supabase/functions/profile-store/index.ts` with its SHA-256 hex hash and deploy `profile-store` with JWT verification off. The function authenticates every request using the custom token before accessing data.
+6. Store the raw token only in Render as `SUPABASE_PROFILE_TOKEN`; copy the Project URL as `SUPABASE_URL`. Never put the token into the browser build or public repository. The function uses Supabase's built-in server secret. These steps are already completed for the current deployment.
+
+Alternative: omit `SUPABASE_PROFILE_TOKEN` and set `SUPABASE_SECRET_KEY` to use the direct server-side REST adapter.
 
 The `kr_profiles` table stores a hashed traveller ID, name, KP/mission/journal progress, quality and sound settings. RLS is enabled and browser roles have no table access. Only the game server awards and saves progress.
 
@@ -52,7 +54,7 @@ Anonymous identity: the browser stores a random traveller credential under the e
 |---|---|
 | `CLIENT_ORIGINS` | `https://YOUR-USERNAME.github.io` — origin only, no repository path or trailing slash |
 | `SUPABASE_URL` | Your Supabase Project URL |
-| `SUPABASE_SECRET_KEY` | Your server-only Supabase secret key |
+| `SUPABASE_PROFILE_TOKEN` | The server-only token matching the deployed function hash |
 
 The Blueprint sets `REQUIRE_PERSISTENCE=true`, the Node version, build/start commands and `/health` check. It requests Singapore; if unavailable for your workspace, choose the nearest available Free region.
 
