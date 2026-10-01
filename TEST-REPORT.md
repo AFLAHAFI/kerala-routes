@@ -20,12 +20,17 @@ These measure a local server under synthetic clients. They do not prove Render l
 
 Headless Chromium checks use two isolated browser contexts, including a touch-enabled 844 × 390 phone viewport. Screenshots and diagnostics are included in `playtest-results/`. Verified through browser controls: claim and drive a bus, brake, switch cab camera, change shared weather, join a second player, move with the touch joystick, board, stand in the aisle, request Kozhikode Beach and reject exit while moving. No JavaScript page errors occurred. Final diagnostics recorded 211 desktop scene meshes, 59 desktop draw calls and 94 phone-viewport draw calls. Software-rendered FPS was only about 3 in this run (about 10–14 in earlier runs); these results do not establish acceptable phone performance. A real-device performance gate remains mandatory.
 
+## Live deployment checks — 2026-10-01
+
+GitHub Pages build/deploy succeeded. Render health reports Socket.IO, capacity 12 and persistence enabled. A live WebSocket test with the Pages origin verified two-player joining, walking to the bus, exclusive driver claim, passenger boarding, standing, destination request, synchronized driving, braking, doors and safe exit. Four synthetic players joined simultaneously. Rejoining retained 30 KP and Low/muted settings; SQL confirmed the profile was written to Supabase. Invalid profile-endpoint tokens were rejected with HTTP 401.
+
+The current cloud browser loaded the public frontend but cannot initialize WebGL, so live graphical rendering and Android performance remain unverified in this environment. Earlier local browser results are described above.
+
 ## Remaining release gates
 
-- Deploy to the user's GitHub Pages, Render and Supabase accounts.
-- Verify live database writes, reloads, server restart recovery of progress, and cold starts.
+- Verify progress across a deliberate server restart and extended real-player sessions.
 - Play the complete terminal → beach → exploration → return-bus loop with two humans.
 - Measure actual Android FPS, controls, battery/heat and internet latency; target stable 30 FPS on Low/Auto before expanding.
 - Increase to four humans, then up to twelve only if the previous stage passes the checklist in SETUP.md.
 
-V1 is a playtest build. The compressed city, simple lane traffic, fictional buses and anonymous device-bound saves are intentional limits. An active journey resets if the server restarts; saved achievements survive only when Supabase is configured. No live deployment or physical-phone performance result is claimed in this package.
+V1 is a playtest build. The compressed city, simple lane traffic, fictional buses and anonymous device-bound saves are intentional limits. An active journey resets if the server restarts; saved achievements survive only when Supabase is configured. Live network and database checks passed; physical-phone performance is not yet measured.
