@@ -4,7 +4,7 @@ import {createServer} from 'node:http';
 import {Server} from 'socket.io';
 import {createHash,randomBytes} from 'node:crypto';
 import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {Simulation,cleanName} from './simulation.js';import {MemoryProfiles,SupabaseProfiles,SaveQueue,type Profile} from './profiles.js';
+import {Simulation,cleanName} from './simulation.js';import {MemoryProfiles,SupabaseProfiles,EdgeProfiles,SaveQueue,type Profile} from './profiles.js';
 import type {ClientEvents,ServerEvents,Settings} from '../../shared/types.js';
 const bundled=import.meta.url.includes('/dist-server/');const production=process.env.NODE_ENV==='production'||bundled;
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),bundled?'..':'../..');
@@ -12,7 +12,7 @@ const origins=(process.env.CLIENT_ORIGINS||'http://localhost:3000,http://127.0.0
 const allowed=(origin:string|undefined)=>!origin||origins.includes(origin);
 const app=express();app.disable('x-powered-by');const http=createServer(app);
 const io=new Server<ClientEvents,ServerEvents>(http,{maxHttpBufferSize:8192,perMessageDeflate:{threshold:512},serveClient:false,cors:{origin:(origin,done)=>done(null,allowed(origin))},allowRequest:(req,done)=>done(null,allowed(req.headers.origin)),pingInterval:20000,pingTimeout:15000});
-const store=process.env.SUPABASE_URL?new SupabaseProfiles(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||''):new MemoryProfiles();
+const store=process.env.SUPABASE_PROFILE_TOKEN?new EdgeProfiles(process.env.SUPABASE_URL||'',process.env.SUPABASE_PROFILE_TOKEN):process.env.SUPABASE_URL?new SupabaseProfiles(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||''):new MemoryProfiles();
 if(process.env.REQUIRE_PERSISTENCE==='true'&&store instanceof MemoryProfiles)throw Error('Set SUPABASE_URL and SUPABASE_SECRET_KEY to enable durable saves.');
 await store.check();
 const sim=new Simulation();const sessions=new Map<string,string>();const signatures=new Map<string,string>();const lastProfiles=new Map<string,Profile>();const joining=new Set<string>();let closing=false;
