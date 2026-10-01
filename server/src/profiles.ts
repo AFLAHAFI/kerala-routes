@@ -20,3 +20,12 @@ export class SaveQueue {
  async flush(id?:string){if(id){await this.writing.get(id);await this.drain(id);}else{await Promise.all(this.writing.values());await this.retry();}}
  get dirty(){return this.pending.size;}
 }
+
+export class EdgeProfiles implements ProfileStore {
+ mode='Supabase · persistent saves';
+ constructor(private url:string,private token:string){if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url)||!token)throw Error('Invalid progress endpoint configuration.');}
+ private async request(operation:string,payload:Record<string,unknown>={}){const response=await fetch(this.url.replace(/\/$/,'')+'/functions/v1/profile-store',{method:'POST',headers:{'Content-Type':'application/json','x-profile-token':this.token},body:JSON.stringify({operation,...payload}),signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('Progress service unavailable (HTTP '+response.status+').');return response.json();}
+ async check(){await this.request('check');}
+ async load(id:string){return (await this.request('load',{id})).profile as Profile|null;}
+ async save(profile:Profile){await this.request('save',{profile});}
+}
