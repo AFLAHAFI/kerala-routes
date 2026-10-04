@@ -16,7 +16,7 @@ const PALETTE = [
 ];
 export class Avatar {
   root: TransformNode;private shirt:StandardMaterial;private outfit="";
-  private proxy:Mesh;private far=false;
+  private bagMaterial:StandardMaterial;private bicycleFrame:import('@babylonjs/core/Meshes/linesMesh.js').LinesMesh;private proxy:Mesh;private far=false;
   private boat?:TransformNode;private scene:Scene;
   private cycle:TransformNode;
   private arms: TransformNode[] = [];
@@ -40,9 +40,9 @@ export class Avatar {
       shoe = mat("shoes", "#e9ddbd"),
       hair = mat("hair", "#292d29"),
       bag = mat("backpack", "#d6c6a0");
-    this.cycle=new TransformNode('bicycle',scene);this.cycle.parent=this.root;this.cycle.setEnabled(false);
+    this.bagMaterial=bag;this.cycle=new TransformNode('bicycle',scene);this.cycle.parent=this.root;this.cycle.setEnabled(false);
     for(const z of [-.65,.65]){const wheel=MeshBuilder.CreateTorus('cycle wheel',{diameter:.75,thickness:.07,tessellation:18},scene);wheel.parent=this.cycle;wheel.position.set(0,.42,z);wheel.rotation.z=Math.PI/2;wheel.material=hair;}
-    const frame=MeshBuilder.CreateLines('cycle frame',{points:[new Vector3(0,.45,-.65),new Vector3(0,.85,-.1),new Vector3(0,.45,.65),new Vector3(0,.55,0),new Vector3(0,.45,-.65),new Vector3(0,1,.4),new Vector3(0,.45,.65)]},scene);frame.parent=this.cycle;frame.color=new Color3(.8,.5,.2);
+    const frame=MeshBuilder.CreateLines('cycle frame',{points:[new Vector3(0,.45,-.65),new Vector3(0,.85,-.1),new Vector3(0,.45,.65),new Vector3(0,.55,0),new Vector3(0,.45,-.65),new Vector3(0,1,.4),new Vector3(0,.45,.65)]},scene);this.bicycleFrame=frame;frame.parent=this.cycle;frame.color=new Color3(.8,.5,.2);
     const handle=MeshBuilder.CreateCylinder('handlebar',{height:.65,diameter:.06,tessellation:6},scene);handle.parent=this.cycle;handle.position.set(0,1.05,.4);handle.rotation.z=Math.PI/2;handle.material=hair;
     const capsule = (
       n: string,
@@ -164,6 +164,7 @@ export class Avatar {
     d = Math.atan2(Math.sin(d), Math.cos(d));
     this.root.rotation.y += d * smooth;
   }
+  setAccessories(bag?:string,bicycle?:string){if(bag)this.bagMaterial.diffuseColor=Color3.FromHexString(bag);if(bicycle)this.bicycleFrame.color=Color3.FromHexString(bicycle);}
   setOutfit(hex:string){if(hex&&hex!==this.outfit){this.outfit=hex;this.shirt.diffuseColor=Color3.FromHexString(hex);}}
   dispose() {
     this.root.dispose(false, true);

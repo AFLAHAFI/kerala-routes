@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Kerala Routes V2 — Alpha 2 development checkpoint
 
 This continues the supplied Alpha 1. It is not the final V2 release and has not replaced any production deployment.

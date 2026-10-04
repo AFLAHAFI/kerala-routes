@@ -22,12 +22,12 @@ jobs:
       - run: npm ci
       - name: Check server URL
         env:
-          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL || 'https://kerala-routes-server.onrender.com' }}
         run: node -e "if(!/^https:\/\/.+/.test(process.env.VITE_SERVER_URL||''))throw Error('Set repository variable VITE_SERVER_URL to the Render HTTPS URL first.')"
       - name: Build browser game
         run: npm run build:client
         env:
-          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL || 'https://kerala-routes-server.onrender.com' }}
           VITE_BASE_PATH: ./
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

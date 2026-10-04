@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Alpha 2 deployment checkpoint
 
 Production has not been changed. Development source is being preserved on `v2-development-alpha-2` in the existing GitHub repository. The original main commit observed was `8bb085c72fd7e5f07613282bcaadd45298b01ad6`.

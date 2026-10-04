@@ -22,9 +22,6 @@
     "client/vite.config.ts",
     "server/src",
     "shared",
-    "tests",
-    "worker",
-    "db",
-    "drizzle.config.ts"
+    "tests"
   ]
 }

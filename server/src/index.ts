@@ -12,7 +12,7 @@ import type {ClientEvents,ServerEvents} from '../../shared/types.js';
 const eventLoop=monitorEventLoopDelay({resolution:20});eventLoop.enable();let tickMs=0,frameBytes=0;
 const bundled=import.meta.url.includes('/dist-server/'),production=process.env.NODE_ENV==='production'||bundled;
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),bundled?'..':'../..');
-const origins=(process.env.CLIENT_ORIGINS||'http://localhost:3000,http://127.0.0.1:3000').split(',').map(s=>s.trim()).filter(Boolean);
+const origins=((process.env.CLIENT_ORIGINS||'http://localhost:3000,http://127.0.0.1:3000')+','+(process.env.EXTRA_CLIENT_ORIGINS||'')).split(',').map(s=>s.trim()).filter(Boolean);
 const allowed=(origin:string|undefined)=>!origin||origins.includes(origin)||(process.env.LOCAL_ONLY==='true'&&/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+):5173$/.test(origin));
 const app=express();app.disable('x-powered-by');const http=createServer(app);
 const io=new Server<ClientEvents,ServerEvents>(http,{maxHttpBufferSize:8192,perMessageDeflate:{threshold:512},serveClient:false,cors:{origin:(origin,done)=>done(null,allowed(origin))},allowRequest:(req,done)=>done(null,allowed(req.headers.origin)),pingInterval:20000,pingTimeout:30000});
@@ -29,7 +29,7 @@ const socials=new Map<string,RoomSocial>();let closing=false;
 function social(room:GameRoom){let value=socials.get(room.id);if(!value){value=new RoomSocial(room.id,record=>store.record(record));value.restore(moderationHistory);socials.set(room.id,value);}return value;}
 const saves=new SaveQueue(store,(id,status)=>{const session=sessions.get(id);if(session)io.to(session.socket).emit('saveStatus',store instanceof MemoryProfiles?'Temporary local saves':status);});
 function checkpoint(force=false){for(const room of rooms.all.values())for(const p of room.sim.state.players){const signature=JSON.stringify([p.name,p.progress,p.settings]);if(force||signatures.get(p.id)!==signature){const profile={id:p.id,name:p.name,progress:p.progress,settings:p.settings,updated_at:new Date().toISOString()};lastProfiles.set(p.id,structuredClone(profile));saves.enqueue(profile);signatures.set(p.id,signature);}}}
-app.get('/health',(_req,res)=>res.json({ok:!closing,version:'2.0.0-alpha.2',players:[...rooms.all.values()].reduce((n,r)=>n+r.sim.state.players.length,0),capacity,rooms:rooms.all.size,transport:'Socket.IO',persistence:!(store instanceof MemoryProfiles)}));
+app.get('/health',(_req,res)=>res.json({ok:!closing,version:'2.0.0-rc.1',players:[...rooms.all.values()].reduce((n,r)=>n+r.sim.state.players.length,0),capacity,rooms:rooms.all.size,transport:'Socket.IO',persistence:!(store instanceof MemoryProfiles)}));
 app.get('/api/join',(_req,res)=>res.status(410).json({message:'This release uses Socket.IO. Refresh the game.'}));
 app.post('/api/moderation',express.json({limit:'4kb'}),async(req,res)=>{
  const secret=process.env.MODERATOR_TOKEN||'',given=(req.headers.authorization||'').replace(/^Bearer /,'');

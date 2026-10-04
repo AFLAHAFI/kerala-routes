@@ -1,3 +1,7 @@
+# 2.0.0-rc.1
+
+Expanded garage, regional food and avatar accessories; added streamed district landmarks and lightweight ambience; added measured route-quality bonuses, skipped-stop/unsafe-stop warnings and sunset time gating. Preserved Alpha systems, validated 64 tests and built multiplayer restart smoke. See RELEASE_RC1.md.
+
 # V2 alpha 2 changes
 
 See **CONTINUATION_STATUS.md** for the current development checkpoint: smaller rendering bundle, ninth minibus variant, depot NPC handling, mobile Auto preset, headlight budget and confirmed-impact penalties.

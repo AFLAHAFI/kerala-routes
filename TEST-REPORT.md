@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Alpha 2 test report
 
 - 61 automated tests passed, including the existing 56 tests and five new regression/initialization checks.

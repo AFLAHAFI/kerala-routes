@@ -2,7 +2,7 @@
 
 Latest development changes and deployment blockers: **CONTINUATION_STATUS.md**.
 
-Build **2.0.0-alpha.2**, local laptop playtest. Continues the existing V1.2 code.
+Build **2.0.0-rc.1**, District Explorer public playtest candidate. Continues the supplied V2 Alpha code. See **RELEASE_RC1.md** for current validation and limitations.
 
 Extract into a NEW folder, double-click **START-LOCAL.bat**, then open **http://localhost:5173**. Node.js 22.12 or newer is required. The first dependency installation needs internet. Keep the terminal open.
 

@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Alpha 2 checkpoint
 
 See CONTINUATION_STATUS.md for current changes. Nine bus variants now include a six-seat minibus; NPCs no longer prevent depot customization. The following table records the preceding Alpha 1 baseline and remaining scope.

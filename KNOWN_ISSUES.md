@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Known limitations and remaining work
 
 1. **No completed browser/device acceptance test.** The browser tool rejected the local URL with `ERR_BLOCKED_BY_CLIENT`. This is an environment limitation, not evidence that the game has no visual bugs. No Windows/Android FPS, touch layout, audio, screenshot or GPU stability results are claimed.

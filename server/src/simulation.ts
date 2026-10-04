@@ -50,7 +50,7 @@ export class Simulation {
    const stop=busStop(b),expected=routeStops(b)[b.next];
    if(b.driver&&stop&&stop.id===expected&&Math.abs(b.speed)*3.6<2&&b.doors&&!b.finished){b.served.push(stop.id);const driver=state.players.find(p=>p.id===b.driver)!;const stopReward=b.route+':'+stop.id;if(!driver.progress.driverStops.includes(stopReward)){driver.progress.driverStops.push(stopReward);driver.progress.kp+=10;progression(driver.progress).driverXP+=20;}b.requested=false;
     for(const id of b.passengers){const p=state.players.find(p=>p.id===id);if(!p)continue;if(p.rideStart===b.trip&&b.direction===1&&stop.id==='mananchira')this.reward(p,'first-journey');if(p.rideStart===b.trip&&b.next===routeStops(b).length-1){if(!p.progress.missions.includes('passenger'))p.progress.kp+=75;this.reward(p,'passenger');}}
-    if(b.next===routeStops(b).length-1){b.finished=true;progression(driver.progress).rating=Math.min(100,(progression(driver.progress).rating??100)+2);progression(driver.progress).routesCompleted++;progression(driver.progress).driverXP+=50;this.reward(driver,'driver');}else b.next++;
+    if(b.next===routeStops(b).length-1){b.finished=true;const rating=this.rules.finish(b,driver);if(rating)state.events.push({id:driver.id,text:rating,at:now});progression(driver.progress).rating=Math.min(100,(progression(driver.progress).rating??100)+2);progression(driver.progress).routesCompleted++;progression(driver.progress).driverXP+=50;this.reward(driver,'driver');}else b.next++;
    }
    if(b.driver){const p=state.players.find(p=>p.id===b.driver);if(p){Object.assign(p,seatPosition(b,0,true));p.yaw=b.yaw;p.moving=false;}}
    b.passengers.forEach((id,index)=>{const p=state.players.find(p=>p.id===id);if(p){p.seat=index;Object.assign(p,seatPosition(b,p.standing?10+index%2:index));p.yaw=b.yaw;p.moving=false;}});
@@ -88,16 +88,16 @@ export class Simulation {
   if(a.type==='equip'){
    const item=SHOP_ITEMS.find(i=>i.id===a.target),v2=progression(p.progress);
    if(!item||!v2.owned.includes(item.id))return fail('Buy this item first.');
-   if(item.kind==='outfit'){v2.equipped.outfit=item.id;return ok('Outfit equipped.');}
+   if(['outfit','bag','bicycle'].includes(item.kind)){v2.equipped[item.kind]=item.id;return ok(item.name+' equipped.');}
    if(!b||p.role!=='driver'||b.driver!==id||distance(b,terminalAt(b.x))>22||Math.abs(b.speed)>.3||b.passengers.some(id=>this.state.players.some(p=>p.id===id)))return fail('Customize at the terminal after real passengers have exited.');
    releaseDepotNpcs(this.npcs,b,now);
-   if(item.kind==='paint')b.paint=item.value;else if(item.kind==='seat')b.seatStyle=item.value;else if(item.kind==='horn')b.hornPreset=item.value;else return fail('This item cannot be equipped.');
+   if(item.kind==='paint')b.paint=item.value;else if(item.kind==='seat')b.seatStyle=item.value;else if(item.kind==='horn')b.hornPreset=item.value;else if(item.kind!=='food'){(b.cosmetics??={})[item.kind]=item.value;}else return fail('This item cannot be equipped.');
    v2.equipped[item.kind]=item.id;return ok(item.name+' equipped.');
   }
   if(a.type==='auto-lights'||a.type==='indicator'){if(!b||b.driver!==id||p.role!=='driver')return fail('Only the driver can use that control.');if(a.type==='auto-lights'){b.autoLights=true;return ok('Automatic headlights enabled.');}if(!['off','left','right'].includes(a.target||''))return fail('Choose left, right or off.');b.indicator=a.target as 'off'|'left'|'right';return ok('Indicator '+a.target);}
   if(a.type==='claim'){
    if(p.role!=='walker'||p.boat||!b||b.driver||distance(p,b)>8||!busStop(b)||Math.abs(b.speed)>.3)return fail('Approach an available stopped bus at a marked stop.');
-   for(const [kind,itemId] of Object.entries(progression(p.progress).equipped)){const item=SHOP_ITEMS.find(v=>v.id===itemId);if(item&&kind==='paint')b.paint=item.value;if(item&&kind==='seat')b.seatStyle=item.value;if(item&&kind==='horn')b.hornPreset=item.value;}b.driver=p.id;b.lastUsed=now;p.role='driver';p.busId=b.id;p.cycle=false;return ok('You are the driver. Close doors with F, release the handbrake with B, then use W/S and A/D.');
+   for(const [kind,itemId] of Object.entries(progression(p.progress).equipped)){const item=SHOP_ITEMS.find(v=>v.id===itemId);if(item&&kind==='paint')b.paint=item.value;if(item&&kind==='seat')b.seatStyle=item.value;if(item&&kind==='horn')b.hornPreset=item.value;if(item&&['livery','wheel','curtain','dashboard','interior','board','mirror'].includes(kind))(b.cosmetics??={})[kind]=item.value;}b.driver=p.id;b.lastUsed=now;p.role='driver';p.busId=b.id;p.cycle=false;return ok('You are the driver. Close doors with F, release the handbrake with B, then use W/S and A/D.');
   }
   if(a.type==='board'){
    if(p.role!=='walker'||p.boat||!b||b.passengers.length>=busLayout(b.model).capacity||distance(p,doorPosition(b))>4||Math.abs(b.speed)*3.6>=2||!b.doors||!busStop(b))return fail('Wait near the open left-side door at a marked stop. The bus must be stopped.');
@@ -120,7 +120,7 @@ export class Simulation {
   if(a.type==='weather'){if(p.role!=='driver')return fail('Only a driver can change shared weather.');if(!['clear','cloudy','rain','evening','light-rain','heavy-rain','fog','mist'].includes(a.target||''))return fail('Choose a weather preset.');this.state.weather=a.target as Weather;this.state.weatherSince=now;return ok('Shared weather: '+a.target);}
   if(a.type==='request-stop'){if(!b||p.role!=='passenger')return fail('Board a bus to request a stop.');if(a.target&&ROUTES[b.route].stops.includes(a.target))p.destination=a.target;b.requested=true;return ok('Stop requested. The driver can see your request.');}
   if(a.type==='interact'){
-   const item=DISCOVERIES.find(v=>v.id===a.target);if(p.role!=='walker'||!item||distance(p,item)>5)return fail('Walk closer to the discovery marker.');if(p.progress.journal.includes(item.id))return fail('Already recorded in your journal.');if(item.id==='dawn-bird'&&(this.minute<300||this.minute>420))return fail('Return between 05:00 and 07:00 for the dawn photograph.');if(item.id==='night-pier'&&(this.minute<1140&&this.minute>300))return fail('Return after 19:00 or before 05:00 for the night photograph.');p.progress.journal.push(item.id);p.progress.kp+=25;progression(p.progress).passengerXP+=15;
+   const item=DISCOVERIES.find(v=>v.id===a.target);if(p.role!=='walker'||!item||distance(p,item)>5)return fail('Walk closer to the discovery marker.');if(p.progress.journal.includes(item.id))return fail('Already recorded in your journal.');if(item.id==='sunset-point'&&(this.minute<1020||this.minute>1140))return fail('Return between 17:00 and 19:00 for the sunset photograph.');if(item.id==='dawn-bird'&&(this.minute<300||this.minute>420))return fail('Return between 05:00 and 07:00 for the dawn photograph.');if(item.id==='night-pier'&&(this.minute<1140&&this.minute>300))return fail('Return after 19:00 or before 05:00 for the night photograph.');p.progress.journal.push(item.id);p.progress.kp+=25;progression(p.progress).passengerXP+=15;
    const needed=DISCOVERIES.filter(v=>v.group===item.group);if(MISSIONS.some(m=>m.id===item.group)&&needed.every(v=>p.progress.journal.includes(v.id)))this.reward(p,item.group);return ok(item.name+' added to your journal. +25 KP');
   }
   if(a.type==='cycle'){if(p.role!=='walker'||p.boat)return fail('Leave the bus or boat before cycling.');if(!p.cycle&&distance(p,cycleStand(p.x))>7)return fail('Find the cycle stand in Kattangal.');p.cycle=!p.cycle;return ok(p.cycle?'Cycle ready. Use the movement controls.':'Cycle parked.');}

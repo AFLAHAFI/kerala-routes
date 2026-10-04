@@ -45,6 +45,27 @@ export class DistrictScenery {
   if(d.biome==='fields')for(const side of [-1,1]){box('paddy',d.offset+start+70,-.01,side*70,132,.12,56,'#b2b957');for(let x=start+10;x<start+140;x+=18)box('field bund',d.offset+x,.12,side*70,.45,.25,56,'#849251');}
   if(d.biome==='forest'||d.biome==='fields'){const hill=MeshBuilder.CreateSphere('forest ridge',{diameter:1,segments:6},this.scene);hill.position.set(d.offset+start+70,-3,112);hill.scaling.set(150,35+(start%3)*5,55);hill.material=mat('#557a63');pieces.push(hill);}
   if(d.biome==='coast'){box('coastal sand',d.offset+start+70,-.06,-75,140,.2,22,'#e1cda1');box('coastal water',d.offset+start+70,-.18,-149,140,.15,135,'#3e8188');}
+  // Landmark silhouettes are merged into the same nearby chunk batches.
+  const centre=d.offset+start+70,rz=roadZ(d,start+70);
+  if(d.biome==='forest'){
+   for(let row=0;row<(quality?5:3);row++)for(let col=0;col<5;col++)box('tea hedge',centre-24+col*12,.7,rz+30+row*5,10,1.2,2.2,'#719348');
+   for(const side of [-1,1])for(let i=0;i<6;i++)box('hill road guardrail',d.offset+start+12+i*23,.65,roadZ(d,start+12+i*23)+side*9,.3,1.3,.3,'#d6d6bd');
+  }
+  if(d.biome==='town'){
+   for(const side of [-1,1]){box('shop awning',centre,3.4,side*22,15,.18,4,'#ad6945');box('shop counter',centre,1,side*22,12,1.7,2,'#b79b69');for(let i=0;i<3;i++)box('market crates',centre-4+i*4,1.9,side*22,2,.4,1,'#d8b45e');}
+   const ridge=MeshBuilder.CreateSphere('Malappuram green hill',{diameter:1,segments:6},this.scene);ridge.position.set(centre,-4,115);ridge.scaling.set(140,28,60);ridge.material=mat('#607f51');pieces.push(ridge);
+  }
+  if(d.id==='kannur'&&start===740){
+   box('coastal heritage pavilion',centre,2,rz+40,16,4,12,'#ac6a48');box('pavilion tiled eaves',centre,4.2,rz+40,19,.5,15,'#774d3b');box('pavilion upper roof',centre,5.1,rz+40,12,1.3,9,'#9a5b40');
+   for(const side of [-1,1])box('pavilion gateway',centre+side*12,2,rz+30,1,4,1,'#b68e60');
+  }
+  if(d.biome==='fields'){
+   box('irrigation channel',centre,-.01,-37,138,.18,2,'#6c9690');box('field footbridge',centre,.3,-37,4,.3,5,'#bca47d');
+   if(start===740){box('rural granary',centre,2.4,rz+39,14,4.8,10,'#c6ad7c');box('granary roof',centre,5,rz+39,16,.6,12,'#965f40');}
+  }
+  if(quality>0){for(const side of [-1,1]){box('electric pole',centre,5,rz+side*14,.16,10,.16,'#6b705e');box('electric crossarm',centre,9.2,rz+side*14,.2,.15,2,'#6b705e');}
+   for(let i=0;i<3;i++){const bx=centre-8+i*7;const bird=box('distant bird',bx,10+i%2,rz+35,.7,.08,.16,'#374944');bird.rotation.z=i%2?.25:-.25;}
+  }
   const lampX=d.offset+start+70,lampZ=roadZ(d,start+70)-10;
   box('lamp post',lampX,3.6,lampZ,.18,7.2,.18,'#596b60');const bulb=box('lamp bulb',lampX,7.2,lampZ,1,.18,.4,'#fff0c1');cleanup.push(this.lights.add(lampX,6.8,lampZ,bulb.material as StandardMaterial));
   for(const s of STOPS.filter(s=>s.x>=d.offset+start&&s.x<d.offset+start+140&&districtAt(s.x).id===d.id)){

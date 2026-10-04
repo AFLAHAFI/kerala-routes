@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Database status and prepared migrations
 
 **No production Supabase changes were made.** Player progress gains an optional `v2` object inside the existing JSONB progress value. The application migration preserves old KP, missions, journal, visited places and driver stops.

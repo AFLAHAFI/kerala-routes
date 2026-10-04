@@ -1,3 +1,4 @@
+import {Ambience} from './Ambience';
 import {EngineSound} from './EngineSound';
 import {PhotoMode,capturePhoto} from './PhotoMode';
 import {busModel} from '../../../shared/buses';
@@ -37,7 +38,7 @@ export class Game {
   private practice:Simulation|null=null;
   private activities:Activities;
   private hornTimes=new Map<string,number>();
-  private audio:AudioContext|null=null;private engineSound:EngineSound|null=null;private photo:PhotoMode;
+  private ambience:Ambience|null=null;private audio:AudioContext|null=null;private engineSound:EngineSound|null=null;private photo:PhotoMode;
   private engine: Engine;
   private scene: Scene;
   private camera: ArcRotateCamera;
@@ -406,25 +407,26 @@ export class Game {
         );
       }
     }
-    for(const p of this.state){const outfit=SHOP_ITEMS.find(i=>i.id===p.progress.v2?.equipped.outfit);if(outfit)this.avatars.get(p.id)?.setOutfit(outfit.value);}
+    for(const p of this.state){const outfit=SHOP_ITEMS.find(i=>i.id===p.progress.v2?.equipped.outfit);if(outfit)this.avatars.get(p.id)?.setOutfit(outfit.value);this.avatars.get(p.id)?.setAccessories(SHOP_ITEMS.find(i=>i.id===p.progress.v2?.equipped.bag)?.value,SHOP_ITEMS.find(i=>i.id===p.progress.v2?.equipped.bicycle)?.value);}
     for(const npc of this.npcs){const near=!!this.self&&Math.hypot(npc.x-this.self.x,npc.z-this.self.z)<120;let model=this.npcModels.get(npc.id);if(!near){if(model){model.dispose();this.npcModels.delete(npc.id);}continue;}if(!model){model=new Avatar(this.scene,'Local traveller · NPC',2);this.npcModels.set(npc.id,model);}let pos={x:npc.x,z:npc.z},yaw=npc.yaw;const bus=this.busStates.find(b=>b.id===npc.busId),rendered=npc.busId?this.buses.get(npc.busId):undefined;if(bus&&rendered){pos=seatPosition({...bus,x:rendered.root.position.x,z:rendered.root.position.z,yaw:rendered.root.rotation.y},npc.seat);yaw=rendered.root.rotation.y;}model.setPosition(pos.x,pos.z,yaw,npc.busId?1:1-Math.exp(-dt*15));model.root.position.y=npc.busId?.8:0;model.pose(!!npc.busId,false);model.animate(dt,npc.state==='walking',false);model.detail(Math.hypot(npc.x-this.self!.x,npc.z-this.self!.z),this.lodDistance);}
     this.qualityTimer+=dt;
     if(this.ui.quality==='auto'){const next=this.adaptive.sample(rawDt,this.adaptiveScale);if(next!==this.adaptiveScale){this.adaptiveScale=next;this.engine.setHardwareScalingLevel(next);}}
     if(this.shownWeather!==this.weather){this.shownWeather=this.weather;this.activities.weather(this.weather);this.world.lighting(this.weather);}
     this.activities.update(dt,this.self,this.traffic,this.mode==='online'?this.worldClock.serverNow(performance.now()):Date.now());
     const riding=this.busStates.find(b=>b.id===this.self?.busId);this.engineSound?.update(dt,riding?.speed||0,!!riding&&!this.muted&&this.mode!=='title');
+    this.ambience?.update(dt,this.self?.x||0,this.self?.z||0,this.minute,this.weather,!this.muted&&this.mode!=='title');
     this.scene.render();
   }
-  private syncBuses(){for(const b of this.busStates){const old=this.buses.get(b.id);if(old&&old.modelId!==busModel(b.model).id){old.root.getChildMeshes().forEach(m=>this.world.shadows.removeShadowCaster(m));old.dispose();this.buses.delete(b.id);}if(!this.buses.has(b.id)){const model=new BusModel(this.scene,b,BUS_SPAWNS.find(s=>s.id===b.id)?.color||'#b84e37');model.update(b,.016,1);this.buses.set(b.id,model);model.root.getChildMeshes().forEach(m=>this.world.shadows.addShadowCaster(m));}}}
+  private syncBuses(){for(const b of this.busStates){const old=this.buses.get(b.id);if(old&&(old.modelId!==busModel(b.model).id||old.cosmeticsKey!==JSON.stringify(b.cosmetics||{}))){old.root.getChildMeshes().forEach(m=>this.world.shadows.removeShadowCaster(m));old.dispose();this.buses.delete(b.id);}if(!this.buses.has(b.id)){const model=new BusModel(this.scene,b,BUS_SPAWNS.find(s=>s.id===b.id)?.color||'#b84e37');model.update(b,.016,1);this.buses.set(b.id,model);model.root.getChildMeshes().forEach(m=>this.world.shadows.addShadowCaster(m));}}}
   private async action(a:Action){
     if(!this.self)return;
-    if(!this.audio){try{this.audio=new AudioContext();this.engineSound=new EngineSound(this.audio);}catch{}}void this.audio?.resume();
-    try{const result=this.practice?this.practice.action(this.self.id,a):await this.net.action(a);this.ui.toast(result.message);if(result.ok&&a.type==='interact'&&DISCOVERIES.find(d=>d.id===a.target)?.action==='photo'){capturePhoto(this.engine,'Kerala-Routes-'+a.target);}if(this.practice){this.practice.advance();this.desiredRadius=this.self.role==='walker'?9:18;}}
+    if(!this.audio){try{this.audio=new AudioContext();this.engineSound=new EngineSound(this.audio);this.ambience=new Ambience(this.audio);}catch{}}void this.audio?.resume();
+    try{const result=this.practice?this.practice.action(this.self.id,a):await this.net.action(a);this.ui.toast(result.message);if(result.ok&&!this.muted&&a.type==='door')this.ambience?.tone(220,.22,.015,.5);if(result.ok&&a.type==='interact'&&DISCOVERIES.find(d=>d.id===a.target)?.action==='photo'){capturePhoto(this.engine,'Kerala-Routes-'+a.target);}if(this.practice){this.practice.advance();this.desiredRadius=this.self.role==='walker'?9:18;}}
     catch(e){this.ui.toast((e as Error).message);}
   }
   private horn(preset?:string){if(!this.audio||this.audio.state!=='running'||this.muted)return;const gain=this.audio.createGain();gain.gain.setValueAtTime(.06,this.audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,this.audio.currentTime+.5);gain.connect(this.audio.destination);for(const frequency of preset==='low'?[120,160]:[180,240]){const o=this.audio.createOscillator();o.frequency.value=frequency;o.type='sawtooth';o.connect(gain);o.start();o.stop(this.audio.currentTime+.5);}}
   private leave() {
-    this.photo.toggle(false);this.engineSound?.dispose();this.engineSound=null;if(this.audio)void this.audio.close();this.audio=null;
+    this.photo.toggle(false);this.ambience?.dispose();this.ambience=null;this.engineSound?.dispose();this.engineSound=null;if(this.audio)void this.audio.close();this.audio=null;
     this.net.close();
     this.practice=null;this.npcs=[];for(const npc of this.npcModels.values())npc.dispose();this.npcModels.clear();
     for(const bus of this.buses.values()){bus.root.getChildMeshes().forEach(m=>this.world.shadows.removeShadowCaster(m));bus.dispose();}this.buses.clear();this.busStates=[];

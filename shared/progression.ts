@@ -8,13 +8,27 @@ export function migrateProgress(progress:Progress):Progress {
  return copy;
 }
 export function progression(progress:Progress):V2Progress{if(!progress.v2)progress.v2=migrateProgress(progress).v2;return progress.v2!;}
-export type ShopItem={id:string;name:string;cost:number;kind:'food'|'paint'|'seat'|'horn'|'outfit';value:string};
+export type ShopItem={id:string;name:string;cost:number;kind:'food'|'paint'|'seat'|'horn'|'outfit'|'livery'|'wheel'|'curtain'|'dashboard'|'interior'|'board'|'mirror'|'bag'|'bicycle';value:string};
 export const SHOP_ITEMS:ShopItem[]=[
  {id:'tea',name:'Tea',cost:5,kind:'food',value:'Tea'},
  {id:'water',name:'Drinking water',cost:3,kind:'food',value:'Water'},
  {id:'chips',name:'Banana chips',cost:12,kind:'food',value:'Banana chips'},
  {id:'halwa',name:'Kozhikode halwa',cost:18,kind:'food',value:'Halwa'},
  {id:'biriyani',name:'Malabar biriyani',cost:30,kind:'food',value:'Biriyani'},
+ {id:'pathiri',name:'Malappuram pathiri',cost:18,kind:'food',value:'Pathiri'},
+ {id:'coffee',name:'Wayanad coffee',cost:8,kind:'food',value:'Coffee'},
+ {id:'thalassery',name:'Thalassery biriyani',cost:30,kind:'food',value:'Thalassery biriyani'},
+ {id:'idli',name:'Ramassery idli',cost:15,kind:'food',value:'Ramassery idli'},
+ {id:'pazham-pori',name:'Pazham pori',cost:10,kind:'food',value:'Banana fritters'},
+ {id:'livery-gold',name:'Golden ribbon livery',cost:90,kind:'livery',value:'#e7bd63'},
+ {id:'wheel-cream',name:'Cream wheel covers',cost:65,kind:'wheel',value:'#eee0bd'},
+ {id:'curtain-maroon',name:'Maroon curtains',cost:55,kind:'curtain',value:'#873e50'},
+ {id:'dashboard-flower',name:'Dashboard flower',cost:35,kind:'dashboard',value:'flower'},
+ {id:'interior-teal',name:'Teal cabin lighting',cost:60,kind:'interior',value:'#70c5b4'},
+ {id:'board-amber',name:'Amber route board',cost:45,kind:'board',value:'amber'},
+ {id:'mirror-chrome',name:'Chrome mirror covers',cost:40,kind:'mirror',value:'#c2d1d0'},
+ {id:'bag-rust',name:'Rust traveller bag',cost:35,kind:'bag',value:'#b97046'},
+ {id:'bicycle-teal',name:'Teal bicycle frame',cost:45,kind:'bicycle',value:'#38988f'},
  {id:'paint-green',name:'Forest green paint',cost:80,kind:'paint',value:'#376d57'},
  {id:'paint-blue',name:'Coastal blue paint',cost:80,kind:'paint',value:'#347da1'},
  {id:'paint-red',name:'Terracotta paint',cost:80,kind:'paint',value:'#b84e37'},

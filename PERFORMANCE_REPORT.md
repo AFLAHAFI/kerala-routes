@@ -1,3 +1,5 @@
+> Historical Alpha checkpoint below. Current RC1 status: [RELEASE_RC1.md](RELEASE_RC1.md). Deployment results will be recorded in RELEASE_DEPLOYMENT.md.
+
 # Alpha 2 measured changes
 
 The main JavaScript build is **1,640.94 kB / 409.47 kB gzip**, compared with Alpha 1 **6,158.36 kB / 1,365.96 kB gzip** in the same environment. This is approximately 73% less minified JavaScript and 70% less gzip transfer for the main bundle. Additional lazy shader chunks are separate. No actual-device FPS improvement has been measured.
