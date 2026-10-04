@@ -17,4 +17,4 @@ Cloud browser lacks WebGL. Visual, audio, touch, night/rain graphics and real An
 GitHub: backup/pre-v2-2026-10-04 at 8bb085c72fd7e5f07613282bcaadd45298b01ad6.
 Previously live Render deploy: dep-dausa6npn0mc738v7b3g (commit 4fba2ba06df417270106f2a46d5b2d06ba22ca40).
 Sites: existing version 1 at b3a83e115b8b87b1a11349bc7b47cdf4657116cf. Retain original database binding and old Worker source/history.
-Supabase: profile table will not be reset. Additive moderation/RPC migrations require validation before server deployment; protect a pre-release snapshot in a private schema. Restore the server/frontend source if necessary; leave compatible additive tables in place. Never restore old profile rows wholesale over newer player progress.
+Supabase: profile table was not reset. Additive moderation/RPC migrations are applied and validated, with a pre-release snapshot in a private schema. See RELEASE_DEPLOYMENT.md for live test results. Restore the server/frontend source if necessary; leave compatible additive tables in place. Never restore old profile rows wholesale over newer player progress.
