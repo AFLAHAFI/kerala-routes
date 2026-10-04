@@ -24,7 +24,7 @@ function busSpawn(b:BusState){const original=BUS_SPAWNS.find(s=>s.id===b.id)!;re
 export function busesOverlap(a:BusState,b:BusState){const axes=(v:BusState)=>[{x:Math.cos(v.yaw),z:-Math.sin(v.yaw)},{x:Math.sin(v.yaw),z:Math.cos(v.yaw)}];const aa=axes(a),bb=axes(b),dot=(u:{x:number;z:number},v:{x:number;z:number})=>u.x*v.x+u.z*v.z;for(const axis of [...aa,...bb]){const radius=(basis:typeof aa,bus:BusState)=>1.5*Math.abs(dot(basis[0],axis))+4.9*busLayout(bus.model).lengthScale*Math.abs(dot(basis[1],axis));if(Math.abs(dot({x:a.x-b.x,z:a.z-b.z},axis))>=radius(aa,a)+radius(bb,b))return false;}return true;}
 export function drive(b:BusState,input:Input,dt:number,others:BusState[]=[]){b.braking=!!input.brake||b.handbrake||b.doors;const throttle=input.throttle||0;b.steer=input.steer||0;const model=busModel(b.model);let acceleration=throttle*(throttle<0&&b.speed>0?8:model.acceleration);if(input.brake||b.doors||b.handbrake||!b.driver)acceleration=-Math.sign(b.speed)*12;else acceleration-=b.speed*.14+Math.sign(b.speed)*.5;let next=b.speed+acceleration*dt;if((input.brake||b.doors||b.handbrake||!b.driver)&&Math.sign(next)!==Math.sign(b.speed))next=0;b.speed=Math.max(-4,Math.min(model.maxSpeed,next));if(Math.abs(b.speed)<.05&&Math.abs(throttle)<.05)b.speed=0;const yaw=b.yaw+b.steer*b.speed/6*Math.tan(.48)*dt;const x=b.x+Math.sin(yaw)*b.speed*dt,z=b.z+Math.cos(yaw)*b.speed*dt;if(busBlocked(b,x,z,yaw)||others.some(other=>other.id!==b.id&&busesOverlap({...b,x,z,yaw},other))){b.speed=0;return true;}else{b.x=x;b.z=z;b.yaw=Math.atan2(Math.sin(yaw),Math.cos(yaw));return false;}}
 export type RoomState={players:PlayerState[];buses:BusState[];inputs:Record<string,{input:Input;at:number}>;seen:Record<string,number>;lastActions:Record<string,number>;updated:number;weather:Weather;weatherSince:number;traffic:ReturnType<typeof createTraffic>;events:{id:string;text:string;at:number}[]};
-export function newRoom(now=Date.now()):RoomState{return {players:[],buses:BUS_SPAWNS.map(s=>({...s,speed:0,steer:0,driver:null,passengers:[],doors:true,lights:false,autoLights:true,indicator:'off' as const,next:0,served:[],trip:1,requested:false,lastUsed:now,horn:0,finished:false,handbrake:true,direction:1 as const})),inputs:{},seen:{},lastActions:{},updated:now,weather:"clear",weatherSince:now,traffic:createTraffic(),events:[]};}
+export function newRoom(now=Date.now()):RoomState{return {players:[],buses:BUS_SPAWNS.map((s,i)=>({...s,model:['ordinary','city','mini'][i],speed:0,steer:0,driver:null,passengers:[],doors:true,lights:false,autoLights:true,indicator:'off' as const,next:0,served:[],trip:1,requested:false,lastUsed:now,horn:0,finished:false,handbrake:true,direction:1 as const})),inputs:{},seen:{},lastActions:{},updated:now,weather:"clear",weatherSince:now,traffic:createTraffic(),events:[]};}
 export class Simulation {
  private rules=new DrivingRules();private trafficDistricts="";
  minute=540;npcs:NpcPassenger[]=[];
@@ -34,6 +34,7 @@ export class Simulation {
  disconnect(id:string,now=Date.now()){const p=this.state.players.find(p=>p.id===id);if(!p)return;const b=this.state.buses.find(b=>b.id===p.busId);if(b){if(b.driver===id){b.driver=null;b.speed=0;b.doors=true;b.lastUsed=now;}b.passengers=b.passengers.filter(v=>v!==id);}this.state.players=this.state.players.filter(p=>p.id!==id);delete this.state.inputs[id];delete this.state.seen[id];delete this.state.lastActions[id];}
  reward(p:PlayerState,id:string){if(p.progress.missions.includes(id))return;p.progress.missions.push(id);p.progress.kp+=MISSIONS.find(m=>m.id===id)?.reward||100;const v2=progression(p.progress);if(id==='driver')v2.driverXP+=100;else v2.passengerXP+=50;}
  advance(now=Date.now()){
+  for(const p of this.state.players)if(p.heldItem&&p.heldItem.until<=now)p.heldItem=null;
   const state=this.state;if(this.npcs.length){const key=[...new Set(state.players.map(p=>districtAt(p.x).id))].sort().join(',');if(key!==this.trafficDistricts){state.traffic=trafficForPlayers(state.traffic,state.players);this.trafficDistricts=key;}}if(now-state.weatherSince>360000){const kinds:Weather[]=["clear","cloudy","light-rain","rain","fog","mist"];state.weather=kinds[(kinds.indexOf(state.weather)+1)%kinds.length];state.weatherSince=now;}let remaining=Math.max(0,Math.min((now-state.updated)/1000,.6));state.updated=now;
   for(const p of [...state.players])if(now-(state.seen[p.id]||0)>15000)this.disconnect(p.id,now);
   const impacts=new Map<string,number>();
@@ -55,7 +56,7 @@ export class Simulation {
    if(b.driver){const p=state.players.find(p=>p.id===b.driver);if(p){Object.assign(p,seatPosition(b,0,true));p.yaw=b.yaw;p.moving=false;}}
    b.passengers.forEach((id,index)=>{const p=state.players.find(p=>p.id===id);if(p){p.seat=index;Object.assign(p,seatPosition(b,p.standing?10+index%2:index));p.yaw=b.yaw;p.moving=false;}});
   }
-  for(const p of state.players){if((p.boatDistance||0)>=80)this.reward(p,'lake-explorer');if((p.cycleDistance||0)>=200)this.reward(p,'cycle-trail');}
+  for(const p of state.players){const d=districtAt(p.x);const v=progression(p.progress);if(Math.abs(p.x-(d.offset+515))<615&&Math.abs(p.z)<90&&!v.districts.includes(d.id)){v.districts.push(d.id);v.passengerXP+=50;p.progress.kp+=25;}if((p.boatDistance||0)>=80)this.reward(p,'lake-explorer');if((p.cycleDistance||0)>=200)this.reward(p,'cycle-trail');}
   for(const p of state.players)for(const stop of STOPS)if(distance(p,stop)<stop.radius&&!p.progress.places.includes(stop.id)){p.progress.places.push(stop.id);p.progress.kp+=20;progression(p.progress).passengerXP+=10;}
 
   state.events=state.events.filter(e=>now-e.at<4000).slice(-8);
@@ -71,19 +72,14 @@ export class Simulation {
   if(a.type==='bus-model'){
    const model=BUS_MODELS.find(m=>m.id===a.target);if(!model)return fail('Unknown bus variant.');if(!b||p.role!=='driver'||b.driver!==id||b.passengers.some(id=>this.state.players.some(p=>p.id===id))||Math.abs(b.speed)>.3||distance(b,terminalAt(b.x))>22)return fail('Choose a variant in an empty stopped bus at the terminal.');if(progression(p.progress).driverXP<model.xp)return fail('Earn '+model.xp+' Driver XP to unlock this variant.');releaseDepotNpcs(this.npcs,b,now);b.model=model.id;b.name=model.name;b.paint=model.color;return ok(model.name+' ready · '+busLayout(model.id).capacity+' passenger seats.');
   }
-  if(a.type==='district'){
-   const district=DISTRICTS.find(d=>d.id===a.target);if(!district)return fail('Choose a district.');if(district.id===districtAt(p.x).id)return fail('You are already in this district.');if(p.role==='passenger')return fail('Your driver chooses the connecting district.');
-   if(p.boat)return fail('Leave your boat before district travel.');if(p.role==='walker'&&distance(p,terminalAt(p.x))>30)return fail('Use the connecting terminal to travel to another district.');
-   if(b&&p.role==='driver'&&(!b.finished||Math.abs(b.speed)>.3||!b.doors))return fail('Complete your route, stop and open doors to continue to another district.');
-   const visitors=b?[p,...this.state.players.filter(v=>v.busId===b.id&&v.id!==p.id)]:[p];
-   if(b){const spawn=BUS_SPAWNS.find(s=>s.id===b.id)!;Object.assign(b,{x:district.offset+spawn.x,z:spawn.z,yaw:spawn.yaw,speed:0,handbrake:true,doors:true,route:district.route,next:0,served:[],finished:false,direction:1,trip:b.trip+1});for(const npc of this.npcs.filter(n=>n.busId===b.id)){npc.destination=ROUTES[b.route].stops[1];npc.stop=ROUTES[b.route].stops[0];}}
-   for(const visitor of visitors){if(visitor.role==='walker')Object.assign(visitor,{x:district.offset+SPAWN.x,z:SPAWN.z});else if(b){Object.assign(visitor,seatPosition(b,visitor.seat,visitor.role==='driver'));visitor.rideStart=b.trip;visitor.destination='';}const v2=progression(visitor.progress);if(!v2.districts.includes(district.id)){v2.districts.push(district.id);v2.passengerXP+=50;visitor.progress.kp+=25;}}
-   return ok('Welcome to '+district.name+' · compressed exploration district.');
-  }
+  if(a.type==='district')return fail('Follow the connecting roads to travel between districts.');
   if(a.type==='buy'){
 
    if(p.role!=='walker'||distance(p,{x:districtAt(p.x).offset-32,z:15})>12)return fail('Visit the market bakery counter on foot to shop.');
-   return buy(p.progress,a.target||'',a.requestId||'');
+   const duplicate=progression(p.progress).purchases.includes(a.requestId||'');
+   const result=buy(p.progress,a.target||'',a.requestId||'');
+   if(result.ok&&!duplicate&&SHOP_ITEMS.find(i=>i.id===a.target)?.kind==='food')p.heldItem={kind:a.target!,until:now+4000};
+   return result;
   }
   if(a.type==='equip'){
    const item=SHOP_ITEMS.find(i=>i.id===a.target),v2=progression(p.progress);
@@ -113,7 +109,7 @@ export class Simulation {
    if(a.type==='door'){if(Math.abs(b.speed)*3.6>=2)return fail('Stop the bus before opening or closing the doors.');b.doors=!b.doors;return ok(b.doors?'Doors open.':'Doors closed.');}
    if(a.type==='light'){b.autoLights=false;b.lights=!b.lights;return ok(b.lights?'Headlights on.':'Headlights off.');}
    if(a.type==='horn'){b.horn=now;return ok('Horn.');}
-   const d=districtAt(b.x);if(!a.target||!(d.id==='kozhikode'?['A','B']:[d.route]).includes(a.target))return fail('Choose a route in this district.');if(distance(b,terminalAt(b.x))>22||Math.abs(b.speed)>.3||b.passengers.length)return fail('Change route at the terminal, stopped with no passengers.');b.route=a.target;b.direction=1;b.next=0;b.served=[];b.finished=false;b.trip++;return ok('Route selected: '+ROUTES[b.route].name);
+   const d=districtAt(b.x);if(!a.target||!(d.id==='kozhikode'?['A','B','CM','CW','CK']:d.id==='malappuram'?['M','MP']:[d.route]).includes(a.target))return fail('Choose a route in this district.');if(distance(b,terminalAt(b.x))>22||Math.abs(b.speed)>.3||b.passengers.some(id=>this.state.players.some(p=>p.id===id)))return fail('Change route at the terminal, stopped with no passengers.');releaseDepotNpcs(this.npcs,b,now);b.route=a.target;b.direction=1;b.next=0;b.served=[];b.finished=false;b.trip++;return ok('Route selected: '+ROUTES[b.route].name);
   }
   if(a.type==='return-route'){if(!b||p.role!=='driver'||!b.finished||Math.abs(b.speed)>.3||!b.doors||busStop(b)?.id!==routeStops(b).at(-1))return fail('Finish the route, stop and open doors at the final stop.');b.direction=b.direction===1?-1:1;b.next=1;b.served=[routeStops(b)[0]];b.finished=false;b.trip++;for(const id of b.passengers){const rider=this.state.players.find(p=>p.id===id);if(rider)rider.rideStart=b.trip;}return ok('Return journey ready. Turn the bus around, then follow the next stop.');}
   if(a.type==='posture'){if(!b||p.role!=='passenger')return fail('Board a bus first.');p.standing=!p.standing;return ok(p.standing?'Standing in the aisle.':'Seated.');}

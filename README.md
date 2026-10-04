@@ -1,3 +1,9 @@
+# Current release: RC2
+
+Play: https://aflahafi.github.io/kerala-routes/
+
+Start with [START_HERE_RC2.md](START_HERE_RC2.md), [RELEASE_RC2.md](RELEASE_RC2.md) and [WORLD_DESIGN_RC2.md](WORLD_DESIGN_RC2.md). Earlier release notes below describe the project history.
+
 # Kerala Routes V2 — District Explorer
 
 Latest development changes and deployment blockers: **CONTINUATION_STATUS.md**.

@@ -28,7 +28,7 @@ jobs:
         run: npm run build:client
         env:
           VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL || 'https://kerala-routes-server.onrender.com' }}
-          VITE_BASE_PATH: ./
+          VITE_BASE_PATH: /kerala-routes/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

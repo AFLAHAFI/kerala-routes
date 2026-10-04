@@ -2,7 +2,7 @@ import {LEADERBOARD_METRICS,type LeaderboardMetric,type LeaderboardRow} from '..
 import {BOAT_DOCKS,cycleStand} from '../../../shared/exploration';
 import {REPORT_REASONS,type ChatMessage,type ReportRequest} from '../../../shared/social';
 import {BUS_MODELS} from '../../../shared/buses';
-import {DISTRICTS,districtAt,districtBuildings,roadZ} from '../../../shared/districts';
+import {CONNECTIONS,DISTRICTS,districtAt,districtBuildings,roadZ} from '../../../shared/districts';
 import {SHOP_ITEMS,driverLevel} from '../../../shared/progression';
 import {formatTime} from '../../../shared/time';
 import { BUILDINGS, PLACES } from "../../../shared/world";
@@ -11,7 +11,7 @@ import {EMOTES} from "../../../shared/types";
 import type {Action,BusState, PlayerState, Emote } from "../../../shared/types";
 export class UI {
   onLeaderboard:(metric:LeaderboardMetric)=>Promise<{ok:boolean;rows?:LeaderboardRow[];message?:string}>=async()=>({ok:false});
-  roomId='public-1';roomChoice='public-1';createPrivate=false;chatMessages:ChatMessage[]=[];blocked=new Set<string>();chatMuted=false;
+  roomId='kerala-main';roomChoice='kerala-main';createPrivate=false;chatMessages:ChatMessage[]=[];blocked=new Set<string>();chatMuted=false;
   onChat:(text:string)=>void=()=>{};onBlock:(id:string,value:boolean)=>void=()=>{};onReport:(r:ReportRequest)=>void=()=>{};
   onAction:(a:Action)=>void=()=>{};
   onWeather:(weather:string)=>void=()=>{};
@@ -33,11 +33,11 @@ export class UI {
   private priorFocus: HTMLElement | null = null;
   constructor() {
     document.querySelector("#app")!.innerHTML = `
- <section class="landing" id="landing"><div class="topline"><div class="brand"><span class="brand-mark">κ</span><div class="brand-name">KERALA ROUTES<span class="brand-sub">DISTRICT EXPLORER</span></div></div><span class="edition">V2 RC1 · PUBLIC PLAYTEST</span></div>
+ <section class="landing" id="landing"><div class="topline"><div class="brand"><span class="brand-mark">κ</span><div class="brand-name">KERALA ROUTES<span class="brand-sub">DISTRICT EXPLORER</span></div></div><span class="edition">V2 RC2 · PUBLIC PLAYTEST</span></div>
  <div class="landing-copy"><div class="eyebrow">A SHARED WORLD. A SLOWER JOURNEY.</div><h1>A little closer<br>to <em>Kerala.</em></h1><p class="landing-description">Salt in the air. Shade under the palms.<br>Step into a little piece of Kozhikode, and explore it together.</p>
- <form class="entry" id="join-form"><label for="player-name">What should fellow travellers call you?</label><input id="player-name" maxlength="18" placeholder="Your traveller name" value="Traveller" autocomplete="off" required><label for="room-choice">Room</label><select id="room-choice"><option value="public-1">Public room 1</option><option value="public-2">Public room 2</option><option value="public-3">Public room 3</option><option value="new">Create private room</option><option value="code">Join private room by code</option></select><input class="hidden" id="room-code" placeholder="Private code: P-…" maxlength="14" aria-label="Private room code"><button class="primary" id="join" type="submit">Join shared room <span aria-hidden="true">↗</span></button><button class="secondary" id="solo" type="button">Practice solo</button><small>Up to 15 real players · Shared room<br>Drive · Ride together · Explore · Discover</small><div id="join-error" class="error" role="alert"></div></form></div>
+ <form class="entry" id="join-form"><label for="player-name">What should fellow travellers call you?</label><input id="player-name" maxlength="18" placeholder="Your traveller name" value="Traveller" autocomplete="off" required><button class="primary" id="join" type="submit">Enter shared world <span aria-hidden="true">↗</span></button><button class="secondary" id="solo" type="button">Practice solo</button><small>Up to 15 real players · One world<br>Drive · Ride together · Explore · Discover</small><div id="join-error" class="error" role="alert"></div></form></div>
  <div class="landing-footer"><div class="coordinates">KOZHIKODE, KERALA &nbsp; / &nbsp; A STYLIZED COASTAL WORLD</div><div class="location-tag"><span class="eyebrow">YOUR FIRST DESTINATION</span><strong>The Malabar coast</strong><small>Original scenery inspired by Kerala</small></div></div><div id="loading" class="loading">Preparing your journey…</div></section>
- <section class="hud hidden" id="hud"><div class="hud-top"><div class="brand"><span class="brand-mark">κ</span><div class="brand-name">KERALA ROUTES<span class="brand-sub">DISTRICT EXPLORER · ALPHA</span></div></div><div class="hud-buttons"><span class="pill"><i class="dot"></i><span id="online">Connecting…</span></span><button data-panel="map" title="Map (M)">Map</button><button data-panel="people">Travellers</button><button data-panel="chat">Chat</button><button data-panel="missions">Missions</button><button data-panel="journal">Journal</button><button data-panel="progression">Progress</button><button data-panel="leaderboards">Rankings</button><button data-panel="shop">Shop</button><button data-panel="garage">Garage</button><button data-panel="districts">Districts</button><button id="photo-mode">Photo</button><button id="camera-toggle" title="Change camera">Camera</button><button data-panel="settings" title="Settings">Settings</button><button data-panel="help" aria-label="Controls and help">?</button></div></div>
+ <section class="hud hidden" id="hud"><div class="hud-top"><div class="brand"><span class="brand-mark">κ</span><div class="brand-name">KERALA ROUTES<span class="brand-sub">DISTRICT EXPLORER · RC2</span></div></div><div class="hud-buttons"><span class="pill"><i class="dot"></i><span id="online">Connecting…</span></span><button data-panel="map" title="Map (M)">Map</button><button data-panel="people">Travellers</button><button data-panel="chat">Chat</button><button data-panel="missions">Missions</button><button data-panel="journal">Journal</button><button data-panel="progression">Progress</button><button data-panel="leaderboards">Rankings</button><button data-panel="shop">Shop</button><button data-panel="garage">Garage</button><button data-panel="districts">Districts</button><button id="photo-mode">Photo</button><button id="camera-toggle" title="Change camera">Camera</button><button data-panel="settings" title="Settings">Settings</button><button data-panel="help" aria-label="Controls and help">?</button></div></div>
  <div class="place-card"><span class="eyebrow" id="district-label">KOZHIKODE · TEST WORLD</span><h2 id="place-name">Mavoor Road</h2><small id="place-ml">കോഴിക്കോട്</small></div>
  <aside class="objective"><span class="eyebrow" id="role-title">YOUR JOURNEY</span><h3 id="journey-title">Choose your first journey.</h3><p id="journey-detail">Approach a bus at the terminal to drive or ride.</p><strong id="points">0 Kerala Points</strong><div class="action-grid" id="actions"></div></aside>
  <button class="map-card" data-panel="map" aria-label="Open district map"><canvas id="minimap" width="376" height="284"></canvas><div class="map-caption"><span>LOCAL AREA</span><span>● YOU</span></div></button>
@@ -48,7 +48,6 @@ export class UI {
  </section><div class="toast" id="toast" role="status"></div><div class="dialog-shade hidden" id="shade"><section class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title"></section></div>`;
     document.querySelector<HTMLButtonElement>("#photo-mode")!.onclick=()=>this.onPhoto();
     document.querySelector<HTMLButtonElement>("#camera-toggle")!.onclick=()=>this.onCamera();
-    document.querySelector<HTMLSelectElement>('#room-choice')!.onchange=e=>document.querySelector('#room-code')!.classList.toggle('hidden',(e.target as HTMLSelectElement).value!=='code');
     const input = document.querySelector<HTMLInputElement>("#player-name")!;
     try {
       input.value = localStorage.getItem("kr-name") || "Traveller";
@@ -56,7 +55,6 @@ export class UI {
     } catch {}
     document.querySelector("#join-form")!.addEventListener("submit", (e) => {
       e.preventDefault();
-      const choice=document.querySelector<HTMLSelectElement>('#room-choice')!.value;this.createPrivate=choice==='new';this.roomChoice=choice==='code'?document.querySelector<HTMLInputElement>('#room-code')!.value.trim().toUpperCase():choice==='new'?'public-1':choice;
       this.join(input.value, false);
     });
     document
@@ -110,7 +108,7 @@ export class UI {
     document.querySelector<HTMLButtonElement>("#solo")!.disabled = b;
     document.querySelector("#join")!.textContent = b
       ? "Joining…"
-      : "Join shared room ↗";
+      : "Enter shared world ↗";
     if (b) this.error("");
   }
   error(message: string) {
@@ -163,10 +161,17 @@ export class UI {
     const ctx = canvas.getContext("2d")!,
       w = canvas.width,
       h = canvas.height;
+    if(labels){
+      ctx.fillStyle='#1f453c';ctx.fillRect(0,0,w,h);const tx=(x:number)=>30+x/13200*(w-60),tz=(z:number)=>90+z/700*(h-140);
+      for(const road of CONNECTIONS){ctx.beginPath();road.points.forEach((p,i)=>i?ctx.lineTo(tx(p.x),tz(p.z)):ctx.moveTo(tx(p.x),tz(p.z)));ctx.strokeStyle=ROUTES[road.id].color;ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#efdfb4';ctx.font='12px sans-serif';const p=road.points[1];ctx.fillText(road.id,tx(p.x)+5,tz(p.z)-8);}
+      for(const d of DISTRICTS){ctx.fillStyle='#dbe4c8';ctx.fillRect(tx(d.offset-90),tz(0)-4,Math.max(12,1200/13200*(w-60)),8);ctx.font='bold 13px sans-serif';ctx.fillText(d.name,tx(d.offset),tz(0)-18);}
+      for(const b of this.buses){ctx.fillStyle='#ecab60';ctx.fillRect(tx(b.x)-3,tz(b.z)-3,6,6);}if(this.self){ctx.beginPath();ctx.arc(tx(this.self.x),tz(this.self.z),6,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();}
+      ctx.fillStyle='#e4d8b6';ctx.font='13px sans-serif';ctx.fillText('RC2 · Continuous world · Schematic layout, not geographic scale',25,30);return;
+    }
     const district=districtAt(this.self?.x||0),offset=district.offset;
     const span=labels?1240:240, center=labels?offset+505:(this.self?.x||30);
     const tx = (x: number) => ((x-center+span/2) / span) * w,
-      tz = (z: number) => ((100 - z) / 200) * h;
+      tz = (z: number) => (((this.self?.z||0)+100 - z) / 200) * h;
     ctx.fillStyle = "#91ac91";
     ctx.fillRect(0, 0, w, h);
     if(district.biome==='coast'){ctx.fillStyle = "#407f86";
@@ -217,6 +222,7 @@ export class UI {
       ctx.fillText("EASTERN ROAD →", tx(78), tz(-12));
     }
     for(const stop of STOPS.filter(s=>districtAt(s.x).id===district.id)){ctx.fillStyle="#eff1da";ctx.fillRect(tx(stop.x)-3,tz(stop.z)-3,6,6);if(labels){ctx.font="10px system-ui";ctx.fillText(stop.name,tx(stop.x)-15,tz(stop.z)+(STOPS.indexOf(stop)%2?30:-20));}}
+    for(const road of CONNECTIONS){ctx.beginPath();road.points.forEach((p,i)=>i?ctx.lineTo(tx(p.x),tz(p.z)):ctx.moveTo(tx(p.x),tz(p.z)));ctx.strokeStyle='#d7d8bb';ctx.lineWidth=9;ctx.stroke();}
     for(const bus of this.buses){ctx.fillStyle=ROUTES[bus.route].color;ctx.fillRect(tx(bus.x)-5,tz(bus.z)-4,10,8);}
     for (const p of this.players) {
       ctx.beginPath();
@@ -229,7 +235,7 @@ export class UI {
     }
     ctx.fillStyle = "#f8ecd0";
     ctx.font = `bold ${labels ? 16 : 19}px system-ui`;
-    ctx.fillText("N ↑", w - 48, 25);
+    ctx.fillText("RC2", w - 48, 25);
   }
   receiveChat(message:ChatMessage){this.chatMessages.push(message);this.chatMessages=this.chatMessages.slice(-80);this.renderChat();}
   private renderChat(){const list=document.querySelector('#chat-history');if(!list)return;list.replaceChildren();if(this.chatMuted)return;for(const message of this.chatMessages.filter(m=>!this.blocked.has(m.player))){const row=document.createElement('p');row.textContent=message.name+': '+message.text;list.append(row);}}
@@ -261,8 +267,8 @@ export class UI {
       const list=document.createElement('div');list.id='chat-history';list.setAttribute('aria-live','polite');body.append(list);this.renderChat();
       const form=document.createElement('form'),input=document.createElement('input'),send=document.createElement('button');input.maxLength=200;input.placeholder='Message this room';input.setAttribute('aria-label','Room message');send.textContent='Send';form.append(input,send);form.onsubmit=e=>{e.preventDefault();if(input.value.trim()){this.onChat(input.value);input.value='';}};body.append(form);
     } else if(type==='districts'){
-      const note=document.createElement('p');note.textContent='Five compact fictional exploration districts. Walk to the terminal to transfer. Drivers must finish the current route and stop with doors open; everyone aboard travels together.';body.append(note);
-      for(const district of DISTRICTS){const button=document.createElement('button');button.textContent=district.name+(districtAt(this.self?.x||0).id===district.id?' · Current':'');button.disabled=districtAt(this.self?.x||0).id===district.id;button.onclick=()=>{this.onAction({type:'district',target:district.id});this.close();};body.append(button);}
+      const note=document.createElement('p');note.textContent='One continuous, compressed world. Follow the signed road junction beyond NIT (east end of Kozhikode). All journeys are driven or walked; there are no district transfers. The map is schematic, not GPS navigation.';body.append(note);
+      for(const road of CONNECTIONS){const row=document.createElement('p');row.textContent=road.name+' · '+road.towns.join(' → ');body.append(row);}
     } else if(type==='progression'){
       const v=this.self?.progress.v2;body.textContent=`${this.self?.progress.kp||0} KP · Driver XP ${v?.driverXP||0} · ${driverLevel(v?.driverXP||0)} · Passenger XP ${v?.passengerXP||0} · Rating ${v?.rating??100}/100 · Routes completed ${v?.routesCompleted||0}. XP is progression; KP is your virtual currency.`;
     } else if(type==='shop'||type==='garage'){
@@ -346,7 +352,7 @@ export class UI {
       detail.textContent=(bus.finished?'Route complete. Start return journey.':`Next: ${next.name} · ${Math.round(distance(bus,next))} m`)+` · ${bus.passengers.length}/10 passengers · Doors ${bus.doors?'open':'closed'}`+(bus.handbrake?' · HANDBRAKE ON':'')+(bus.requested?' · STOP REQUESTED: '+this.players.filter(r=>r.busId===bus.id&&r.destination).map(r=>STOPS.find(s=>s.id===r.destination)?.name).filter(Boolean).join(', '):'');
       if(p.role==='driver')buttons=[{label:bus.doors?'Close doors · F':'Open doors · F',action:{type:'door'}},{label:bus.handbrake?'Release handbrake · B':'Handbrake · B',action:{type:'handbrake'}},{label:'Horn · H',action:{type:'horn'}},{label:'Lights · L',action:{type:'light'}},{label:'Auto headlights',action:{type:'auto-lights'}},{label:'◀ Indicator',action:{type:'indicator',target:bus.indicator==='left'?'off':'left'}},{label:'Indicator ▶',action:{type:'indicator',target:bus.indicator==='right'?'off':'right'}},{label:'Route '+(bus.route==='A'?'B':'A'),action:{type:'route',target:bus.route==='A'?'B':'A'}},{label:'Recover bus',action:{type:'recover'}}];
       else buttons=ROUTES[bus.route].stops.map(id=>({label:'Request '+STOPS.find(s=>s.id===id)!.name,action:{type:'request-stop',target:id}}));
-      if(districtAt(p.x).id!=='kozhikode')buttons=buttons.filter(b=>b.action.type!=='route');
+      buttons=buttons.filter(b=>b.action.type!=='route');if(p.role==='driver'){const d=districtAt(p.x);for(const id of (d.id==='kozhikode'?['A','B','CM','CW','CK']:d.id==='malappuram'?['M','MP']:[d.route]))buttons.push({label:ROUTES[id].name,action:{type:'route',target:id}});}
       if(p.role==='driver'&&bus.finished)buttons.push({label:'Start return journey',action:{type:'return-route'}});
       if(p.role==='passenger')buttons.push({label:p.standing?'Sit down':'Stand in aisle',action:{type:'posture'}});
       buttons.push({label:'Exit bus',action:{type:'exit'}});

@@ -1,18 +1,25 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {Simulation,doorPosition,seatPosition} from '../server/src/simulation';
-import {DISTRICTS,districtAt,districtBuildings,roadZ} from '../shared/districts';
+import {Simulation,doorPosition,seatPosition,drive} from '../server/src/simulation';
+import {DISTRICTS,CONNECTIONS,ROAD_SEGMENTS,districtAt,districtBuildings,roadZ,onWorldLand} from '../shared/districts';
 import {STOPS,ROUTES} from '../shared/game-data';import {blocked,move} from '../shared/world';
-test('district transfers validate location and preserve progress, and discoveries reward once',()=>{
- const sim=new Simulation(),p=sim.join('p','Traveller');p.progress.kp=90;
- Object.assign(p,{x:-80,z:60});assert.equal(sim.action(p.id,{type:'district',target:'wayanad'},1000).ok,false);
- Object.assign(p,{x:33,z:8});assert.equal(sim.action(p.id,{type:'district',target:'wayanad'},1200).ok,true);assert.equal(districtAt(p.x).id,'wayanad');assert.equal(p.progress.kp,115);
- Object.assign(p,{x:6033,z:8});assert.ok(sim.action(p.id,{type:'district',target:'kozhikode'},1400).ok);Object.assign(p,{x:33,z:8});assert.ok(sim.action(p.id,{type:'district',target:'wayanad'},1600).ok);assert.equal(p.progress.kp,115);
+test('teleport requests are rejected without changing position or progress',()=>{
+ const sim=new Simulation(),p=sim.join('p','Traveller');p.progress.kp=90;const before=structuredClone(p);
+ for(const d of DISTRICTS)assert.equal(sim.action(p.id,{type:'district',target:d.id},1000+DISTRICTS.indexOf(d)*200).ok,false);
+ assert.deepEqual(p,before);
 });
-test('completed bus transfers preserve real riders and NPCs and reset route state coherently',()=>{
- const sim=new Simulation(undefined,15,true),driver=sim.join('d','Driver'),rider=sim.join('r','Rider'),bus=sim.state.buses[0];Object.assign(driver,{x:bus.x,z:bus.z});assert.ok(sim.action(driver.id,{type:'claim',target:bus.id},1000).ok);Object.assign(rider,doorPosition(bus));assert.ok(sim.action(rider.id,{type:'board',target:bus.id},1000).ok);
- assert.equal(sim.action(driver.id,{type:'district',target:'palakkad'},1200).ok,false);
- bus.finished=true;bus.direction=-1;assert.ok(sim.action(driver.id,{type:'district',target:'palakkad'},1400).ok);assert.equal(bus.route,'P');assert.equal(bus.direction,1);assert.equal(rider.busId,bus.id);assert.equal(rider.rideStart,bus.trip);assert.deepEqual({x:rider.x,z:rider.z},seatPosition(bus,rider.seat));assert.equal(districtAt(driver.x).id,'palakkad');assert.equal(sim.action(rider.id,{type:'district',target:'kannur'},1600).ok,false);
+test('every connecting road is continuously walkable with clear full-width bus collision samples',()=>{
+ assert.equal(CONNECTIONS.length,4);const reached=new Set(['kozhikode']);for(let i=0;i<5;i++)for(const c of CONNECTIONS)if(reached.has(c.from))reached.add(c.to);assert.equal(reached.size,5);
+ for(const {a,b} of ROAD_SEGMENTS){const length=Math.hypot(b.x-a.x,b.z-a.z),dx=(b.x-a.x)/length,dz=(b.z-a.z)/length;
+  for(let t=0;t<=length;t+=3){const x=a.x+dx*t,z=a.z+dz*t;assert.ok(onWorldLand(x,z),JSON.stringify({x,z}));assert.equal(blocked(x,z),false);for(const side of [-1.5,1.5])assert.equal(blocked(x-dz*side,z+dx*side,.25),false);const next=move({x,z},dx,dz,false,.05);assert.ok(Math.hypot(next.x-x,next.z-z)>.2);}
+ }
+ assert.equal(blocked(2000,-50),true);
 });
-test('all districts have reachable stops, shared solid buildings and clamped walking boundaries',()=>{
- for(const d of DISTRICTS){assert.ok(ROUTES[d.route]);for(const id of ROUTES[d.route].stops){const stop=STOPS.find(s=>s.id===id)!;assert.equal(districtAt(stop.x).id,d.id);assert.equal(blocked(stop.x,stop.z),false);}if(d.id==='kozhikode')continue;const b=districtBuildings(d)[0];assert.ok(blocked(b.x,b.z));const moved=move({x:d.offset+1129,z:80},1,0,true,1);assert.equal(moved.x,d.offset+1130);assert.equal(districtBuildings(d),districtBuildings(d));}assert.notEqual(roadZ(DISTRICTS[2],250),0);
+test('driven boundary crossing retains bus trip, real passenger and NPC anchors',()=>{
+ const now=Date.now(),sim=new Simulation(undefined,15,true),driver=sim.join('d','Driver'),rider=sim.join('r','Rider'),bus=sim.state.buses[0];Object.assign(driver,{x:bus.x,z:bus.z});assert.ok(sim.action(driver.id,{type:'claim',target:bus.id},now).ok);Object.assign(rider,doorPosition(bus));assert.ok(sim.action(rider.id,{type:'board',target:bus.id},now).ok);
+ Object.assign(bus,{x:1498,z:340,yaw:Math.PI/2,speed:10,doors:false,handbrake:false,route:'CW'});const npc=sim.npcs[0];Object.assign(npc,{state:'aboard',busId:bus.id,destination:'wayanad-terminal'});bus.passengers.push(npc.id);const trip=bus.trip;
+ for(let i=0;i<30;i++){const time=now+i*34;sim.input(driver.id,{seq:i,x:0,z:0,sprint:false,throttle:1},time);sim.state.seen[rider.id]=time;sim.advance(time);}
+ assert.ok(bus.x>1500);assert.equal(bus.trip,trip);assert.equal(bus.route,'CW');assert.equal(rider.busId,bus.id);assert.deepEqual({x:rider.x,z:rider.z},seatPosition(bus,rider.seat));assert.equal(npc.busId,bus.id);assert.deepEqual({x:npc.x,z:npc.z},seatPosition(bus,npc.seat));
+});
+test('legacy stops remain reachable and district buildings remain solid',()=>{
+ for(const d of DISTRICTS){assert.ok(ROUTES[d.route]);for(const id of ROUTES[d.route].stops){const stop=STOPS.find(s=>s.id===id)!;assert.equal(districtAt(stop.x).id,d.id);assert.equal(blocked(stop.x,stop.z),false);}if(d.id!=='kozhikode'){const b=districtBuildings(d)[0];assert.ok(blocked(b.x,b.z));assert.equal(districtBuildings(d),districtBuildings(d));}}assert.notEqual(roadZ(DISTRICTS[2],250),0);
 });

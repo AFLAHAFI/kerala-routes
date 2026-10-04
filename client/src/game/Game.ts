@@ -325,7 +325,7 @@ export class Game {
       else {this.net.send(command);if(this.self.role==='walker')step(this.self,command,dt);else if(this.self.role==='driver'){const bus=this.busStates.find(b=>b.id===this.self!.busId);if(bus&&this.net.connected)drive(bus,command,dt,this.busStates);}}
       this.syncBuses();for(const bus of this.busStates){const model=this.buses.get(bus.id)!;const remote=this.mode==='online'&&bus.driver!==this.self.id;const pose=remote?this.busMotion.sample(bus.id,performance.now()-120):undefined;model.update(pose?{...bus,...pose}:bus,dt,remote?1:1-Math.exp(-dt*15),this.graphics==='low'?(this.self.busId===bus.id?1:0):Math.hypot(bus.x-this.self.x,bus.z-this.self.z)<65?2:0);model.detail(Math.hypot(bus.x-this.self.x,bus.z-this.self.z),this.lodDistance,this.self.busId===bus.id);if(bus.horn>(this.hornTimes.get(bus.id)||0)){this.hornTimes.set(bus.id,bus.horn);if(Math.hypot(bus.x-this.self.x,bus.z-this.self.z)<100)this.horn(bus.hornPreset);}}
       if(this.self.busId){const bus=this.busStates.find(b=>b.id===this.self!.busId);if(bus){const model=this.buses.get(bus.id)!;const rendered={...bus,x:model.root.position.x,z:model.root.position.z,yaw:model.root.rotation.y};Object.assign(this.self,seatPosition(rendered,this.self.standing?10+this.self.seat%2:this.self.seat,this.self.role==='driver'));this.self.yaw=rendered.yaw;}}
-      const avatar=this.avatars.get(this.self.id);avatar?.setPosition(this.self.x,this.self.z,this.self.yaw,this.self.busId?1:1-Math.exp(-dt*22));if(avatar)avatar.root.position.y=this.self.role==='walker'?0:.8;avatar?.animate(dt,this.self.moving&&this.self.role==='walker',input.sprint);if(avatar){avatar.root.setEnabled(this.desiredRadius>1);avatar.pose(this.self.role!=="walker"&&!this.self.standing,this.self.cycle,!!this.self.boat);}
+      const avatar=this.avatars.get(this.self.id);avatar?.setPosition(this.self.x,this.self.z,this.self.yaw,this.self.busId?1:1-Math.exp(-dt*22));if(avatar)avatar.root.position.y=this.self.role==='walker'?0:.8;avatar?.animate(dt,this.self.moving&&this.self.role==='walker',input.sprint);if(avatar){avatar.root.setEnabled(this.desiredRadius>1);avatar.pose(this.self.role!=="walker"&&!this.self.standing,this.self.cycle,!!this.self.boat);avatar.hold(this.self.heldItem?.kind||null);}
       const renderTime = performance.now() - 100;
       let a = this.lastSnapshots[0],
         b = this.lastSnapshots[this.lastSnapshots.length - 1];
@@ -362,7 +362,7 @@ export class Game {
         mesh?.setPosition(x, z, yaw, p.busId?1:1 - Math.exp(-dt * 18));
         if(mesh)mesh.root.position.y=p.role==="walker"?0:.8;
         mesh?.animate(dt, p.moving, p.sprint);
-        mesh?.pose(p.role!=="walker"&&!p.standing,p.cycle,!!p.boat);mesh?.detail(Math.hypot(p.x-this.self.x,p.z-this.self.z),this.lodDistance);
+        mesh?.pose(p.role!=="walker"&&!p.standing,p.cycle,!!p.boat);mesh?.hold(p.heldItem?.kind||null);mesh?.detail(Math.hypot(p.x-this.self.x,p.z-this.self.z),this.lodDistance);
       }
       const target = new Vector3(this.self.x, this.self.role==="walker"?1.25:2.6, this.self.z);
       if(this.desiredRadius<1){this.camera.alpha=-this.self.yaw-Math.PI/2;this.camera.beta=1.5;}

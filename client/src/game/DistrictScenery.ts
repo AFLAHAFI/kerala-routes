@@ -6,21 +6,31 @@ import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
 import {Color3} from '@babylonjs/core/Maths/math.color.js';
 import {DynamicTexture} from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
 import {ShadowGenerator} from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
-import {districtAt,districtBuildings,roadZ,type District} from '../../../shared/districts';
+import {DISTRICTS,CONNECTIONS,ROAD_SEGMENTS,districtAt,districtBuildings,roadZ,type District} from '../../../shared/districts';
 import {STOPS} from '../../../shared/game-data';
 import {SceneryStream} from './Chunks';
 import {NightLights} from './NightLights';
 
 /** Only the current district owns generated chunks. The collision data is shared with the server. */
 export class DistrictScenery {
- stream=new SceneryStream();private current='kozhikode';
- constructor(private scene:Scene,private shadows:ShadowGenerator,private lights:NightLights){}
- update(dt:number,x:number,z:number,distance:number,quality:number){
-  const d=districtAt(x);
-  if(d.id!==this.current){this.stream.dispose();this.stream=new SceneryStream();this.current=d.id;
-   if(d.id!=='kozhikode')for(let start=-100;start<1160;start+=140)this.stream.add(d.offset+start+70,roadZ(d,start+70),q=>this.build(d,start,q));
-  }
-  this.stream.update(dt,x,z,distance,quality);
+ stream=new SceneryStream();
+ constructor(private scene:Scene,private shadows:ShadowGenerator,private lights:NightLights){
+  for(const d of DISTRICTS.slice(1))for(let start=-100;start<1160;start+=140)this.stream.add(d.offset+start+70,roadZ(d,start+70),q=>this.build(d,start,q));
+  for(const segment of ROAD_SEGMENTS){const dx=segment.b.x-segment.a.x,dz=segment.b.z-segment.a.z,n=Math.ceil(Math.hypot(dx,dz)/100);for(let i=0;i<n;i++){const x=segment.a.x+dx*(i+.5)/n,z=segment.a.z+dz*(i+.5)/n;this.stream.add(x,z,q=>this.roadChunk(x,z,dx/n,dz/n,segment.road,q,i===0));}}
+ }
+ update(dt:number,x:number,z:number,distance:number,quality:number){this.stream.update(dt,x,z,distance,quality);}
+ private roadChunk(x:number,z:number,dx:number,dz:number,road:string,quality:number,sign:boolean){
+  const meshes:Mesh[]=[],materials:StandardMaterial[]=[],length=Math.hypot(dx,dz),angle=-Math.atan2(dz,dx);
+  const material=(hex:string)=>{const m=new StandardMaterial('connector',this.scene);m.diffuseColor=Color3.FromHexString(hex);m.specularColor.set(.02,.02,.02);m.maxSimultaneousLights=3;materials.push(m);return m;};
+  const grass=material(road==='CW'?'#577a4e':'#839762'),asphalt=material('#596261'),paint=material('#eee4bd'),wood=material('#79644d');
+  const box=(name:string,along:number,side:number,y:number,w:number,h:number,d:number,mat:StandardMaterial)=>{const m=MeshBuilder.CreateBox(name,{width:w,height:h,depth:d},this.scene);m.position.set(x+Math.cos(angle)*along+Math.sin(angle)*side,y,z-Math.sin(angle)*along+Math.cos(angle)*side);m.rotation.y=angle;m.material=mat;m.isPickable=false;m.freezeWorldMatrix();meshes.push(m);return m;};
+  box('continuous road land',0,0,-.5,length+5,1,80,grass);box('connecting road',0,0,.025,length+4,.12,19,asphalt);
+  for(let a=-length/2;a<length/2;a+=12)box('centre dash',a,0,.095,5,.015,.18,paint);
+  for(const side of [-1,1]){box('edge line',0,side*8.7,.095,length+2,.015,.14,paint);if(road==='CW'){box('ghat guardrail',0,side*12,.8,length+3,.15,.2,paint);}for(let i=0;i<(quality?3:1);i++){const along=(i+1)*length/(quality?4:2)-length/2;box('roadside trunk',along,side*27,3,.4,6,.4,wood);box('canopy',along,side*27,6,5,2,5,grass);}}
+  if(road==='MP'){box('irrigation water',0,25,-.02,length+2,.1,3,material('#548f95'));box('paddy terrace',0,-27,.02,length,.12,12,material('#b2b94e'));}
+  if(sign){const c=CONNECTIONS.find(c=>c.id===road)!;const tex=new DynamicTexture('road directions',{width:1024,height:128},this.scene,false);tex.drawText(c.name+' · '+c.towns.slice(1,3).join(' / '),null,76,'bold 35px sans-serif','#fff4cd','#235c4c',true);const m=material('#ffffff');m.diffuseTexture=tex;m.emissiveColor.set(.2,.2,.2);m.backFaceCulling=false;box('direction pole',0,15,2.5,.2,5,.2,wood);const panel=MeshBuilder.CreatePlane('direction sign',{width:13,height:1.7},this.scene);panel.position.set(x+Math.sin(angle)*15,4.5,z+Math.cos(angle)*15);panel.rotation.y=angle;panel.material=m;meshes.push(panel);}
+  const batches:Mesh[]=[];for(const mat of materials){const group=meshes.filter(m=>m.material===mat);if(!group.length)continue;const merged=Mesh.MergeMeshes(group,true,true,undefined,false,false);if(merged){merged.isPickable=false;merged.freezeWorldMatrix();batches.push(merged);}}
+  return ()=>{batches.forEach(m=>m.dispose());materials.forEach(m=>m.dispose(false,true));};
  }
  private build(d:District,start:number,quality:number){
   const pieces:Mesh[]=[],materials=new Map<string,StandardMaterial>(),cleanup:(()=>void)[]=[];
@@ -55,6 +65,9 @@ export class DistrictScenery {
    for(const side of [-1,1]){box('shop awning',centre,3.4,side*22,15,.18,4,'#ad6945');box('shop counter',centre,1,side*22,12,1.7,2,'#b79b69');for(let i=0;i<3;i++)box('market crates',centre-4+i*4,1.9,side*22,2,.4,1,'#d8b45e');}
    const ridge=MeshBuilder.CreateSphere('Malappuram green hill',{diameter:1,segments:6},this.scene);ridge.position.set(centre,-4,115);ridge.scaling.set(140,28,60);ridge.material=mat('#607f51');pieces.push(ridge);
   }
+  if(d.id==='kannur'&&start===180){for(const side of [-1,1])box('laterite fort bastion',centre+side*12,3,rz-43,8,6,10,'#925e46');box('fort sea wall',centre,2,rz-47,30,4,3,'#a36b4d');for(let i=0;i<8;i++)box('fort crenellation',centre-14+i*4,4.5,rz-47,2,1,3,'#a36b4d');}
+  if(d.id==='malappuram'&&start===740){box('hill park pavilion',centre,3,rz+44,12,.4,10,'#995d40');for(const side of [-1,1])for(const end of [-1,1])box('pavilion timber pillar',centre+side*5,1.5,rz+44+end*4,.4,3,.4,'#b69464');for(let i=0;i<5;i++)box('park terrace step',centre, i*.2,rz+28+i*2,16-i, .4,2,'#c4ba8e');}
+  if(d.id==='palakkad'&&start===180){box('Bharathapuzha inspired riverbank',centre,-.02,rz-65,135,.15,38,'#6f9c9b');box('riverside footbridge',centre,.7,rz-65,5,.4,45,'#c6baa1');for(const side of [-1,1])box('bridge railing',centre+side*2.5,1.3,rz-65,.1,1,45,'#b8ae92');}
   if(d.id==='kannur'&&start===740){
    box('coastal heritage pavilion',centre,2,rz+40,16,4,12,'#ac6a48');box('pavilion tiled eaves',centre,4.2,rz+40,19,.5,15,'#774d3b');box('pavilion upper roof',centre,5.1,rz+40,12,1.3,9,'#9a5b40');
    for(const side of [-1,1])box('pavilion gateway',centre+side*12,2,rz+30,1,4,1,'#b68e60');

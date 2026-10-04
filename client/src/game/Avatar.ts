@@ -15,6 +15,7 @@ const PALETTE = [
   "#b27e9e",
 ];
 export class Avatar {
+  private held?:Mesh;private heldKind='';private heldMaterial?:StandardMaterial;
   root: TransformNode;private shirt:StandardMaterial;private outfit="";
   private bagMaterial:StandardMaterial;private bicycleFrame:import('@babylonjs/core/Meshes/linesMesh.js').LinesMesh;private proxy:Mesh;private far=false;
   private boat?:TransformNode;private scene:Scene;
@@ -164,10 +165,20 @@ export class Avatar {
     d = Math.atan2(Math.sin(d), Math.cos(d));
     this.root.rotation.y += d * smooth;
   }
+  hold(kind:string|null){
+    if(kind!==this.heldKind){this.held?.dispose();this.heldMaterial?.dispose();this.held=undefined;this.heldKind=kind||'';
+      if(kind){const drink=['tea','coffee','water'].includes(kind);const m=new StandardMaterial('held '+kind,this.scene);m.diffuseColor=Color3.FromHexString(kind==='water'?'#75c3d3':drink?'#deb57d':'#b9ae77');this.heldMaterial=m;
+        this.held=drink?MeshBuilder.CreateCylinder('held '+kind,{height:kind==='water'?.34:.2,diameterTop:kind==='water'?.09:.18,diameterBottom:.13,tessellation:8},this.scene):MeshBuilder.CreateBox('food parcel',{width:.28,height:.14,depth:.24},this.scene);
+        this.held.parent=this.arms[1];this.held.position.set(0,-.55,.06);this.held.material=m;
+      }
+    }
+    if(this.held){this.arms[1].rotation.x=-1.15;this.held.setEnabled(!this.far);}
+  }
   setAccessories(bag?:string,bicycle?:string){if(bag)this.bagMaterial.diffuseColor=Color3.FromHexString(bag);if(bicycle)this.bicycleFrame.color=Color3.FromHexString(bicycle);}
   setOutfit(hex:string){if(hex&&hex!==this.outfit){this.outfit=hex;this.shirt.diffuseColor=Color3.FromHexString(hex);}}
   dispose() {
     this.root.dispose(false, true);
+    this.heldMaterial?.dispose();
     this.texture.dispose();
     this.materials.forEach((m) => m.dispose());
   }

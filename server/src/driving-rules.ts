@@ -1,6 +1,6 @@
 import type {BusState,PlayerState} from '../../shared/types';
 import {SIGNALS,signalColor,speedLimit} from '../../shared/road-rules';
-import {districtAt,roadZ} from '../../shared/districts';
+import {districtAt,roadZ,onConnector} from '../../shared/districts';
 import {STOPS,routeStops} from '../../shared/game-data';
 import {progression} from '../../shared/progression';
 type Previous={x:number;z:number;speed:number;at:number;wrongSince:number;speedSince:number;stoppedSince:number;driver:string|null};
@@ -16,7 +16,7 @@ export class DrivingRules {
   if(old&&old.driver===driver.id&&now-old.at<1000&&Math.hypot(bus.x-old.x,bus.z-old.z)<12){
    const elapsed=(now-old.at)/1000;if(elapsed>0){trip.metres+=Math.hypot(bus.x-old.x,bus.z-old.z);if(old.speed>6&&(old.speed-bus.speed)/elapsed>9&&now-trip.lastHarsh>3000){trip.harsh++;trip.lastHarsh=now;}}
    const stops=routeStops(bus),expected=STOPS.find(s=>s.id===stops[bus.next]),prior=STOPS.find(s=>s.id===stops[Math.max(0,bus.next-1)]);
-   if(!bus.finished&&bus.next>0&&expected&&prior){const dx=expected.x-prior.x,dz=expected.z-prior.z,length=Math.hypot(dx,dz);const along=(bus.x-expected.x)*dx+(bus.z-expected.z)*dz;const before=(old.x-expected.x)*dx+(old.z-expected.z)*dz;if(length>0&&before<expected.radius*length&&along>=expected.radius*length)violation('Missed required stop');}
+   if(!onConnector(bus.x,bus.z)&&!bus.finished&&bus.next>0&&expected&&prior){const dx=expected.x-prior.x,dz=expected.z-prior.z,length=Math.hypot(dx,dz);const along=(bus.x-expected.x)*dx+(bus.z-expected.z)*dz;const before=(old.x-expected.x)*dx+(old.z-expected.z)*dz;if(length>0&&before<expected.radius*length&&along>=expected.radius*length)violation('Missed required stop');}
    const unsafe=bus.doors&&Math.abs(bus.speed)<.2&&!STOPS.some(s=>Math.hypot(s.x-bus.x,s.z-bus.z)<s.radius)&&Math.abs(bus.z-z)<5;next.stoppedSince=unsafe?(old.stoppedSince||now):0;if(next.stoppedSince&&now-next.stoppedSince>10000)violation('Unsafe stopping in lane');
    for(const s of SIGNALS)if(signalColor(now,s.offset)==='red'&&(old.x-s.x)*(bus.x-s.x)<0&&Math.abs(bus.z-s.z)<8)violation('Red signal');
    const moving=Math.abs(bus.speed)>3,wrong=moving&&Math.abs(bus.z-z)>1&&Math.abs(bus.z-z)<6&&(bus.z-z)*Math.sin(bus.yaw)>0;

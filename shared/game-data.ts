@@ -15,7 +15,14 @@ export const ROUTES:Record<string,{name:string;stops:string[];color:string}> = {
  B:{name:'City & Suburban',stops:['terminal','medical','kunnamangalam','kattangal','nit'],color:'#71b5ae'}
 };
 export type RouteId=string;
-for(const d of DISTRICTS.slice(1)){const ids=['terminal','town','village','viewpoint','outskirts'];const points=[33,280,550,820,1070];for(let i=0;i<ids.length;i++)STOPS.push({id:d.id+'-'+ids[i],name:d.name+' '+ids[i],ml:d.name,x:d.offset+points[i],z:i?roadZ(d,points[i]):8,radius:17});ROUTES[d.route]={name:d.name+' Explorer',stops:ids.map(id=>d.id+'-'+id),color:'#7bbb99'};}
+const townNames:Record<string,string[]>={malappuram:['Malappuram stand','Kottakkal market','Tirur road','Kottakkunnu-inspired park','Perinthalmanna road'],wayanad:['Kalpetta stand','Vythiri','Lakkidi viewpoint','Tea country','Forest edge'],kannur:['Kannur stand','Thalassery road','Payyambalam promenade','Heritage coast','Taliparamba road'],palakkad:['Palakkad stand','Ottappalam road','Shoranur riverside','Paddy country','Ramassery road']};
+for(const d of DISTRICTS.slice(1)){const ids=['terminal','town','village','viewpoint','outskirts'];const points=[33,280,550,820,1070];for(let i=0;i<ids.length;i++)STOPS.push({id:d.id+'-'+ids[i],name:townNames[d.id][i],ml:d.name,x:d.offset+points[i],z:i?roadZ(d,points[i]):8,radius:17});ROUTES[d.route]={name:d.name+' Explorer',stops:ids.map(id=>d.id+'-'+id),color:'#7bbb99'};}
+Object.assign(ROUTES,{
+ CM:{name:'Kozhikode – Malappuram',stops:['terminal','nit','malappuram-terminal'],color:'#c4a64f'},
+ CW:{name:'Kozhikode – Wayanad',stops:['terminal','nit','wayanad-terminal'],color:'#6b985e'},
+ CK:{name:'Kozhikode – Kannur',stops:['terminal','nit','kannur-terminal'],color:'#569bad'},
+ MP:{name:'Malappuram – Palakkad',stops:['malappuram-terminal','malappuram-outskirts','palakkad-terminal'],color:'#b0a459'}
+});
 export const MISSIONS=[
  {id:'first-journey',title:'First Bus Journey',description:'Board at the terminal and ride as a passenger to Mananchira.',reward:100},
  {id:'sunset',title:'Sunset Photographer',description:'Photograph the coastal viewpoint on the beach.',reward:100},

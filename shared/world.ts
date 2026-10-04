@@ -1,5 +1,5 @@
 import {BOAT_DOCKS} from './exploration';
-import {districtAt,districtBounds,districtBuildings} from './districts';
+import {districtAt,districtBounds,districtBuildings,onWorldLand} from './districts';
 export type Vec2 = { x: number; z: number };
 export type Obstacle = { x: number; z: number; w: number; d: number };
 export const SPAWN = { x: 8, z: -13 };
@@ -172,6 +172,7 @@ export const PLACES = [
   },
 ];
 export function blocked(x: number, z: number, r = 0.38) {
+  if(!onWorldLand(x,z,r))return true;
   const district=districtAt(x);
   if(BOAT_DOCKS.some(dock=>Math.abs(x-dock.water.x)<dock.water.w/2+r&&Math.abs(z-dock.water.z)<dock.water.d/2+r))return true;
   return (district.id==='kozhikode'?OBSTACLES:districtBuildings(district)).some(

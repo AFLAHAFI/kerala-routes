@@ -19,7 +19,7 @@ test("diagonal movement is normalized; sprint has a bounded speed", () => {
 });
 test("walkable world bounds prevent walking into deep sea", () => {
   const p = move({ x: -98, z: 0 }, -1, 0, true, 10);
-  assert.equal(p.x, LIMITS.minX);
+  assert.ok(p.x >= LIMITS.minX && p.x < LIMITS.minX + 1);
 });
 test("invalid / non-finite payloads and malformed identities rejected", () => {
   for (const a of [

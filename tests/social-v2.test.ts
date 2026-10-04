@@ -8,6 +8,6 @@ test('reports preserve server evidence without automatic bans, and moderation fa
  await assert.rejects(()=>social.report('a',{target:'target',reason:'Spam',messageId:'fake'},['target'],2100));await social.moderate('target','ban',1,'Reviewed evidence',3000);assert.equal(social.banned('target',4000),true);const restored=new RoomSocial('room',async()=>{});restored.restore(records,4000);assert.equal(restored.banned('target',4000),true);assert.equal(social.banned('target',64000),false);
  const broken=new RoomSocial('room',async()=>{throw Error('Storage down');});await assert.rejects(()=>broken.moderate('t','ban',10,'Review'));assert.equal(broken.banned('t'),false);
 });
-test('public/private room lists and capacity do not expose private invite codes',()=>{
- const rooms=new Rooms(15),privateRoom=rooms.get('public-1',true);assert.match(privateRoom.id,/^P-[A-F0-9]{12}$/);assert.equal(rooms.get(privateRoom.id),privateRoom);assert.ok(!rooms.list().some(r=>r.id===privateRoom.id));assert.throws(()=>rooms.get('P-000000000000'));rooms.get('public-2');assert.equal(rooms.list().length,2);assert.equal(rooms.get('public-1').sim.state.players.length,0);
+test('all selectors resolve to the same world and the sixteenth player is rejected',()=>{
+ const rooms=new Rooms(15),world=rooms.get();for(const code of ['public-1','public-2','P-000000000000','anything'])assert.equal(rooms.get(code,true),world);assert.equal(rooms.all.size,1);assert.equal(rooms.list()[0].id,'kerala-main');for(let i=0;i<15;i++)world.sim.join('p'+i,'Traveller');assert.throws(()=>world.sim.join('overflow','Full'),/full/);rooms.prune(Date.now()+999999);assert.equal(rooms.all.size,1);
 });

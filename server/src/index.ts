@@ -1,3 +1,4 @@
+import {SnapshotEncoder,nearbySnapshot} from '../../shared/snapshots.js';
 import {LEADERBOARD_METRICS,type LeaderboardRow} from '../../shared/leaderboards.js';
 import express from 'express';
 import {monitorEventLoopDelay} from 'node:perf_hooks';
@@ -19,9 +20,10 @@ const io=new Server<ClientEvents,ServerEvents>(http,{maxHttpBufferSize:8192,perM
 if(process.env.LOCAL_ONLY==='true')for(const key of Object.keys(process.env))if(key.startsWith('SUPABASE_')||key==='REQUIRE_PERSISTENCE'||key==='VITE_SERVER_URL')delete process.env[key];
 const store=process.env.LOCAL_ONLY==='true'&&process.env.LOCAL_SAVE_DIR?new FileProfiles(path.resolve(process.env.LOCAL_SAVE_DIR)):process.env.SUPABASE_PROFILE_TOKEN?new EdgeProfiles(process.env.SUPABASE_URL||'',process.env.SUPABASE_PROFILE_TOKEN):process.env.SUPABASE_URL?new SupabaseProfiles(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||''):new MemoryProfiles();
 if(process.env.REQUIRE_PERSISTENCE==='true'&&store instanceof MemoryProfiles)throw Error('Configure persistent saves before starting production.');
-await store.check();const moderationHistory=await store.recentModeration();
+await store.check();const moderationHistory=(await store.recentModeration()).map((r:import('../../shared/social').ModerationRecord)=>({...r,room:r.room==='public-1'?'kerala-main':r.room}));
 const capacity=Math.max(2,Math.min(15,Number(process.env.ROOM_CAPACITY)||15)),rooms=new Rooms(capacity);
 const reconnectGrace=Math.max(0,Math.min(60000,Number(process.env.RECONNECT_GRACE_MS??20000)||0));
+const encoders=new Map<string,SnapshotEncoder>();
 const sessions=new Map<string,{socket:string;room:string}>(),signatures=new Map<string,string>(),lastProfiles=new Map<string,Profile>(),joining=new Set<string>();
 const resumes=new Map<string,{x:number;z:number;yaw:number;room:string;expires:number}>();
 const boardCache=new Map<string,{at:number;rows:LeaderboardRow[]}>();
@@ -29,7 +31,7 @@ const socials=new Map<string,RoomSocial>();let closing=false;
 function social(room:GameRoom){let value=socials.get(room.id);if(!value){value=new RoomSocial(room.id,record=>store.record(record));value.restore(moderationHistory);socials.set(room.id,value);}return value;}
 const saves=new SaveQueue(store,(id,status)=>{const session=sessions.get(id);if(session)io.to(session.socket).emit('saveStatus',store instanceof MemoryProfiles?'Temporary local saves':status);});
 function checkpoint(force=false){for(const room of rooms.all.values())for(const p of room.sim.state.players){const signature=JSON.stringify([p.name,p.progress,p.settings]);if(force||signatures.get(p.id)!==signature){const profile={id:p.id,name:p.name,progress:p.progress,settings:p.settings,updated_at:new Date().toISOString()};lastProfiles.set(p.id,structuredClone(profile));saves.enqueue(profile);signatures.set(p.id,signature);}}}
-app.get('/health',(_req,res)=>res.json({ok:!closing,version:'2.0.0-rc.1',players:[...rooms.all.values()].reduce((n,r)=>n+r.sim.state.players.length,0),capacity,rooms:rooms.all.size,transport:'Socket.IO',persistence:!(store instanceof MemoryProfiles)}));
+app.get('/health',(_req,res)=>res.json({ok:!closing,version:'2.0.0-rc.2',players:[...rooms.all.values()].reduce((n,r)=>n+r.sim.state.players.length,0),capacity,rooms:rooms.all.size,transport:'Socket.IO',persistence:!(store instanceof MemoryProfiles)}));
 app.get('/api/join',(_req,res)=>res.status(410).json({message:'This release uses Socket.IO. Refresh the game.'}));
 app.post('/api/moderation',express.json({limit:'4kb'}),async(req,res)=>{
  const secret=process.env.MODERATOR_TOKEN||'',given=(req.headers.authorization||'').replace(/^Bearer /,'');
@@ -51,15 +53,15 @@ io.on('connection',socket=>{
   if(joining.has(key)||sessions.has(key)){reply({ok:false,message:'This traveller is already playing. Use a different name in the second tab.'});return;}
   pendingJoin=true;joining.add(key);
   try{
-   const reserved=rooms.findPlayer(key);room=reserved||rooms.get(data.room||'public-1',data.createPrivate===true);
+   const reserved=rooms.findPlayer(key);room=reserved||rooms.get(data.room||'kerala-main',data.createPrivate===true);
    if(social(room).banned(key))throw Error('Your access to this room is temporarily suspended.');
    await saves.flush(key);const profile=lastProfiles.get(key)||await store.load(key);if(!socket.connected)return;
    const p=room.sim.join(key,name,profile?.progress);if(profile?.settings)p.settings=profile.settings;
    const resume=resumes.get(key);if(resume&&resume.room===room.id&&resume.expires>Date.now())Object.assign(p,{x:resume.x,z:resume.z,yaw:resume.yaw});resumes.delete(key);room.reserved.delete(key);
    blocked=new Set((Array.isArray(data.blocked)?data.blocked:[]).filter(v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v)).slice(0,100));socket.data.blocked=blocked;
-   id=key;sessions.set(key,{socket:socket.id,room:room.id});await socket.join(room.id);delete room.sim.state.inputs[key];clearTimeout(expires);
-   reply({ok:true,welcome:{id:key,...room.sim.snapshot(),roomId:room.id,privateRoom:room.privateRoom,chat:social(room).messages.filter(m=>!blocked.has(m.player)),capacity,saveMode:store.mode,clock:room.clock.sample()}});checkpoint();
-  }catch(error){reply({ok:false,message:room.sim.state.players.length>=capacity?'This room is full. Please try again later.':error instanceof Error&&/room|suspended/i.test(error.message)?error.message:'Could not load saved progress. Please retry; your save has not been reset.'});}finally{joining.delete(key);pendingJoin=false;}
+   id=key;encoders.set(key,new SnapshotEncoder());sessions.set(key,{socket:socket.id,room:room.id});await socket.join(room.id);delete room.sim.state.inputs[key];clearTimeout(expires);
+   reply({ok:true,welcome:{id:key,...nearbySnapshot(room.sim.snapshot(),key),roomId:room.id,privateRoom:room.privateRoom,chat:social(room).messages.filter(m=>!blocked.has(m.player)),capacity,saveMode:store.mode,clock:room.clock.sample()}});checkpoint();
+  }catch(error){reply({ok:false,message:room.sim.state.players.length>=capacity?'The shared world is full (15 players). Please try again when a space opens.':error instanceof Error&&/room|suspended/i.test(error.message)?error.message:'Could not load saved progress. Please retry; your save has not been reset.'});}finally{joining.delete(key);pendingJoin=false;}
  });
  const rate=()=>{if(Date.now()-windowStart>=1000){count=0;actions=0;windowStart=Date.now();}};
  socket.on('input',input=>{if(!id)return;rate();if(++count<=35)room.sim.input(id,input);});
@@ -73,7 +75,7 @@ io.on('connection',socket=>{
  socket.on('emote',text=>{if(id)room.sim.action(id,{type:'emote',target:text});});
  socket.on('disconnect',reason=>{
   clearTimeout(expires);if(!id)return;const p=room.sim.state.players.find(p=>p.id===id);if(p)resumes.set(id,{x:p.x,z:p.z,yaw:p.yaw,room:room.id,expires:Date.now()+60000});
-  if(process.env.LOCAL_ONLY==='true')console.log('disconnect',reason);checkpoint();sessions.delete(id);
+  if(process.env.LOCAL_ONLY==='true')console.log('disconnect',reason);checkpoint();sessions.delete(id);encoders.delete(id);
   if(reconnectGrace>0&&!socket.data.deliberateLeave){room.reserved.set(id,Date.now()+reconnectGrace);delete room.sim.state.inputs[id];const bus=room.sim.state.buses.find(b=>b.driver===id);if(bus){bus.speed=0;bus.handbrake=true;}}
   else room.sim.disconnect(id);void saves.flush(id);
  });
@@ -88,8 +90,8 @@ const clock=setInterval(()=>{
  rooms.prune(now);for(const id of socials.keys())if(!rooms.all.has(id))socials.delete(id);
 },1000/30);
 const broadcast=setInterval(()=>{
- for(const room of rooms.all.values()){if(!room.sim.state.players.length)continue;const frame=room.encoder.encode(room.sim.snapshot());io.to(room.id).emit('snapshot',frame);
-  if(++room.tick%30===0){checkpoint();if(process.env.LOCAL_ONLY==='true'){frameBytes=Buffer.byteLength(JSON.stringify(frame));io.to(room.id).emit('diagnostics' as any,{tickMs,frameBytes,eventLoopMs:Number(eventLoop.mean/1e6)||0,heapMB:process.memoryUsage().heapUsed/1048576,sockets:io.engine.clientsCount});}}
+ for(const room of rooms.all.values()){if(!room.sim.state.players.length)continue;const snapshot=room.sim.snapshot();let frame:any;for(const [id,session] of sessions){if(session.room!==room.id)continue;frame=encoders.get(id)!.encode(nearbySnapshot(snapshot,id));io.to(session.socket).emit('snapshot',frame);}
+  if(++room.tick%30===0){checkpoint();if(process.env.LOCAL_ONLY==='true'){frameBytes=Buffer.byteLength(JSON.stringify(frame||{}));io.to(room.id).emit('diagnostics' as any,{tickMs,frameBytes,eventLoopMs:Number(eventLoop.mean/1e6)||0,heapMB:process.memoryUsage().heapUsed/1048576,sockets:io.engine.clientsCount});}}
  }
 },1000/15);
 const timeSync=setInterval(()=>{for(const room of rooms.all.values())if(room.sim.state.players.length)io.to(room.id).emit('clock',room.clock.sample());eventLoop.reset();},5000);
