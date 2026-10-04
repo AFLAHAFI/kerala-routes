@@ -6,3 +6,7 @@ dist-server/
 !.env.example
 *.log
 playtest-results/
+
+node_modules
+
+.local-saves/

@@ -1,36 +1,47 @@
-import {
-  Scene,
-  Mesh,
-  MeshBuilder,
-  StandardMaterial,
-  Color3,
-  Vector3,
-  DynamicTexture,
-  Texture,
-  ShaderMaterial,
-  Effect,
-  DirectionalLight,
-  HemisphericLight,
-  ShadowGenerator,
-  VertexData,
-  VertexBuffer,
-} from "@babylonjs/core";
+import {DistrictScenery} from './DistrictScenery';
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent.js';
+import {districtAt} from '../../../shared/districts';
+import {lightState} from '../../../shared/time';
+import {NightLights} from './NightLights';
+import {Scene} from '@babylonjs/core/scene.js';
+import {TransformNode} from '@babylonjs/core/Meshes/transformNode.js';
+import {Mesh} from '@babylonjs/core/Meshes/mesh.js';
+import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder.js';
+import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
+import {Color3} from '@babylonjs/core/Maths/math.color.js';
+import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
+import {DynamicTexture} from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
+import {Texture} from '@babylonjs/core/Materials/Textures/texture.js';
+import {ShaderMaterial} from '@babylonjs/core/Materials/shaderMaterial.js';
+import {Effect} from '@babylonjs/core/Materials/effect.js';
+import {DirectionalLight} from '@babylonjs/core/Lights/directionalLight.js';
+import {HemisphericLight} from '@babylonjs/core/Lights/hemisphericLight.js';
+import {ShadowGenerator} from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
+import {VertexData} from '@babylonjs/core/Meshes/mesh.vertexData.js';
+import {VertexBuffer} from '@babylonjs/core/Buffers/buffer.js';
 import {STOPS} from "../../../shared/game-data";
 import { BUILDINGS } from "../../../shared/world";
 const C = (s: string) => Color3.FromHexString(s);
+import {ChunkVisibility,SceneryStream} from './Chunks';
+import type {Weather} from '../../../shared/types';
 export class World {
-  readonly shadows: ShadowGenerator;
+  readonly districts:DistrictScenery;private baseRoot:TransformNode;
+  chunks=new ChunkVisibility();stream=new SceneryStream();
+  private weather:Weather="clear";private warmth=.22;private cloud=0;
+  readonly shadows: ShadowGenerator;readonly nightLights:NightLights;private fill:HemisphericLight;
   readonly sun: DirectionalLight;
   private mats = new Map<string, StandardMaterial>();
   private staticMeshes: Mesh[] = [];
   private water: ShaderMaterial;
   private sky: ShaderMaterial;
   constructor(readonly scene: Scene) {
+    this.baseRoot=new TransformNode("Kozhikode scenery",scene);
+    this.nightLights=new NightLights(scene);
     scene.clearColor.set(0.7, 0.8, 0.79, 1);
     scene.fogMode = Scene.FOGMODE_EXP2;
     scene.fogDensity = 0.0024;
     scene.fogColor = C("#c4d9cd");
-    const fill = new HemisphericLight("sky-light", new Vector3(0, 1, 0), scene);
+    const fill = this.fill = new HemisphericLight("sky-light", new Vector3(0, 1, 0), scene);
     fill.intensity = 0.75;
     fill.diffuse = C("#dce9ed");
     fill.groundColor = C("#676b46");
@@ -51,19 +62,19 @@ export class World {
     this.shadows.normalBias = 0.04;
     this.shadows.setDarkness(0.2);
     Effect.ShadersStore.coastalSkyVertexShader = `precision highp float;attribute vec3 position;uniform mat4 worldViewProjection;varying vec3 p;void main(){p=position;gl_Position=worldViewProjection*vec4(position,1.);}`;
-    Effect.ShadersStore.coastalSkyFragmentShader = `precision highp float;varying vec3 p;uniform float warmth;void main(){vec3 d=normalize(p);float h=max(d.y,0.);vec3 low=mix(vec3(.82,.87,.76),vec3(.98,.74,.49),warmth);vec3 high=mix(vec3(.29,.61,.72),vec3(.32,.51,.63),warmth);vec3 c=mix(low,high,pow(h,.6));float s=dot(d,normalize(vec3(-.7,.29,-.45)));c+=vec3(1.,.78,.45)*pow(max(s,0.),160.)*.45;c=mix(c,vec3(1.,.94,.73),smoothstep(.9992,.9995,s));gl_FragColor=vec4(c,1.);}`;
+    Effect.ShadersStore.coastalSkyFragmentShader = `precision highp float;varying vec3 p;uniform float warmth;uniform float cloud;uniform float daylight;uniform vec3 sunDirection;void main(){vec3 d=normalize(p);float h=max(d.y,0.);vec3 low=mix(vec3(.82,.87,.76),vec3(.98,.61,.35),warmth);vec3 high=mix(vec3(.29,.61,.72),vec3(.32,.44,.59),warmth);vec3 c=mix(low,high,pow(h,.6));float s=max(dot(d,sunDirection),0.);c+=vec3(1.,.78,.45)*pow(s,160.)*.45*daylight;c=mix(c,vec3(.56,.64,.65)+h*.08,cloud*.7);vec3 night=mix(vec3(.13,.18,.27),vec3(.018,.035,.09),h);c=mix(night,c,daylight);gl_FragColor=vec4(c,1.);}`;
     this.sky = new ShaderMaterial(
       "sky-material",
       scene,
       { vertex: "coastalSky", fragment: "coastalSky" },
-      { attributes: ["position"], uniforms: ["worldViewProjection", "warmth"] },
+      { attributes: ["position"], uniforms: ["worldViewProjection", "warmth", "cloud", "daylight", "sunDirection"] },
     );
     this.sky.backFaceCulling = false;
     this.sky.disableDepthWrite = true;
-    this.sky.setFloat("warmth", 0.22);
+    this.sky.setFloat("warmth", 0.22);this.sky.setFloat("cloud",0);this.sky.setFloat("daylight",1);this.sky.setVector3("sunDirection",new Vector3(-.7,.29,-.45).normalize());
     const sky = MeshBuilder.CreateSphere(
       "sky",
-      { diameter: 500, segments: 12 },
+      { diameter: 300, segments: 12 },
       scene,
     );
     sky.material = this.sky;
@@ -141,8 +152,22 @@ export class World {
     for (const b of BUILDINGS) this.building(b);
     this.box('market lane',-62,.02,-31,10,.12,62,'#697170',false).material=this.asphalt();
     this.box('beach link',-77,.03,-61,40,.12,10,'#697170',false).material=this.asphalt();
-    for(let x=175;x<1100;x+=30){this.palm(x,16,8+(x%4),x);if(x%3===0)this.palm(x,-17,9,x+1);}
-    for(let x=220;x<1120;x+=85){this.tree(x,60,7,x);this.tree(x+30,-55,6,x+1);}
+    // Route-side vegetation is generated on demand instead of all at startup.
+    for(let start=140;start<1120;start+=140)this.stream.add(start+70,0,quality=>{
+      const count=[2,4,6][quality];
+      for(let i=0;i<count;i++){
+        const x=start+12+i*116/count,z=i%2?-19:19;
+        if(!BUILDINGS.some(b=>Math.abs(x-b.x)<b.w/2+5&&Math.abs(z-b.z)<b.d/2+5))this.palm(x,z,8+this.rand(x)*3,x);
+        if(quality>0){const tz=i%2?-58:58;if(!BUILDINGS.some(b=>Math.abs(x-b.x)<b.w/2+6&&Math.abs(tz-b.z)<b.d/2+6))this.tree(x,tz,5+this.rand(x+1)*2,x);}
+      }
+      // Low-cost roadside reflectors and drainage edges, merged with the vegetation batch.
+      for(let x=start+10;x<start+140;x+=35)for(const z of [-7.2,7.2]){
+        this.box('road reflector',x,.55,z,.12,1,.12,'#eee2bd',false);
+        this.box('reflector stripe',x,.8,z,.14,.12,.14,'#b95539',false);
+      }
+      const meshes=this.mergeStatic();
+      return ()=>{for(const mesh of meshes){this.shadows.removeShadowCaster(mesh);mesh.dispose();}};
+    });
     for(let x=140;x<1120;x+=90)this.sign(x,-8,'NIT CALICUT →','കട്ടാങ്ങൽ',6);
     this.ocean();
     this.water = this.scene.getMaterialByName("ocean-shader") as ShaderMaterial;
@@ -218,12 +243,17 @@ export class World {
       boat.material = this.mat(["#537e99", "#b76543", "#ceab59"][i]);
       this.staticMeshes.push(boat);
     }
-    for(const stop of STOPS){if(stop.id!=='terminal'){this.shelter(stop.x+5,stop.z+12);this.label(stop.name,stop.x+5,3.2,stop.z+9,6,.6,'#fff0c6','#355f52');}}
+    for(const stop of STOPS.filter(s=>districtAt(s.x).id==='kozhikode')){if(stop.id!=='terminal'){this.shelter(stop.x+5,stop.z+12);this.label(stop.name,stop.x+5,3.2,stop.z+9,6,.6,'#fff0c6','#355f52');}}
     for(let x=210;x<1100;x+=90)this.powerPole(x,-11);
     this.box('small bridge',630,.12,0,22,.28,14,'#89918a',false);
     for(const z of [-7.4,7.4]){this.box('bridge railing',630,1,z,22,.16,.18,'#c6c9b1');for(let x=620;x<=640;x+=4)this.box('bridge post',x,.6,z,.18,1.1,.18,'#c6c9b1');}
     this.sign(810,13,'CYCLE STAND','സൈക്കിൾ',5);
     this.mergeStatic();
+    for(const mesh of scene.meshes)if(mesh.name.startsWith('scenery ')||mesh.material?.name.startsWith('sign '))this.chunks.add(mesh);
+    // Repeated coast bollards share geometry/material through Babylon instances.
+    const post=MeshBuilder.CreateCylinder('coast bollard',{diameter:.22,height:.85,tessellation:6},scene);post.material=this.mat('#476d62');post.position.set(-74,.43,-70);this.chunks.add(post);for(let z=-60;z<90;z+=10){const instance=post.createInstance('coast bollard instance');instance.position.set(-74,.43,z);this.chunks.add(instance);}
+    for(const mesh of scene.meshes)if(mesh.name!=='sky'&&!mesh.parent)mesh.parent=this.baseRoot;
+    this.districts=new DistrictScenery(scene,this.shadows,this.nightLights);
   }
   rand(n: number) {
     return (
@@ -234,7 +264,7 @@ export class World {
   mat(hex: string) {
     let m = this.mats.get(hex);
     if (!m) {
-      m = new StandardMaterial(hex, this.scene);
+      m = new StandardMaterial(hex, this.scene);m.maxSimultaneousLights=6;
       m.diffuseColor = C(hex);
       m.specularColor = new Color3(0.055, 0.055, 0.04);
       this.mats.set(hex, m);
@@ -666,7 +696,7 @@ export class World {
       "#f9e3ae",
       false,
     );
-    (bulb.material as StandardMaterial).emissiveColor = C("#9e8552");
+    (bulb.material as StandardMaterial).emissiveColor = C("#9e8552");this.nightLights.add(x,7.3,z,bulb.material as StandardMaterial);
   }
   private powerPole(x: number, z: number) {
     this.cylinder("utility pole", x, 5, z, 0.23, 10, "#a1a394");
@@ -723,17 +753,17 @@ export class World {
   }
   private ocean() {
     Effect.ShadersStore.coastalWaterVertexShader = `precision highp float;attribute vec3 position;uniform mat4 worldViewProjection;uniform mat4 world;uniform float time;varying vec3 p;void main(){vec3 v=position;v.y+=sin(v.x*.15+time*.55)*.09+cos(v.z*.11+time*.7)*.06;p=(world*vec4(v,1.)).xyz;gl_Position=worldViewProjection*vec4(v,1.);}`;
-    Effect.ShadersStore.coastalWaterFragmentShader = `precision highp float;varying vec3 p;uniform float time;void main(){float near=exp(-abs(p.x+106.)*.017);vec3 c=mix(vec3(.14,.38,.47),vec3(.33,.66,.64),near);float wave=sin(p.x*.85+sin(p.z*.14)*.4+time*.9);float ripple=sin(p.z*1.5+p.x*.6+time*.7);float foam=smoothstep(.93,1.,wave)*near;float shimmer=pow(max(0.,ripple*wave),16.)*.13;c+=vec3(.28,.3,.22)*foam+vec3(shimmer);gl_FragColor=vec4(c,1.);}`;
+    Effect.ShadersStore.coastalWaterFragmentShader = `precision highp float;varying vec3 p;uniform float time;uniform float daylight;void main(){float near=exp(-abs(p.x+106.)*.017);vec3 c=mix(vec3(.14,.38,.47),vec3(.33,.66,.64),near);float wave=sin(p.x*.85+sin(p.z*.14)*.4+time*.9);float ripple=sin(p.z*1.5+p.x*.6+time*.7);float foam=smoothstep(.93,1.,wave)*near;float shimmer=pow(max(0.,ripple*wave),16.)*.13;c+=vec3(.28,.3,.22)*foam+vec3(shimmer);c*=mix(.22,1.,daylight);gl_FragColor=vec4(c,1.);}`;
     const water = new ShaderMaterial(
       "ocean-shader",
       this.scene,
       { vertex: "coastalWater", fragment: "coastalWater" },
       {
         attributes: ["position"],
-        uniforms: ["worldViewProjection", "world", "time"],
+        uniforms: ["worldViewProjection", "world", "time", "daylight"],
       },
     );
-    water.backFaceCulling = false;
+    water.setFloat("daylight",1);water.backFaceCulling = false;
     const mesh = MeshBuilder.CreateGround(
       "Arabian Sea",
       { width: 1100, height: 1400, subdivisions: 20 },
@@ -751,13 +781,14 @@ export class World {
       if(material instanceof StandardMaterial&&!material.diffuseTexture&&material.emissiveColor.r+material.emissiveColor.g+material.emissiveColor.b===0){const c=material.diffuseColor;const colors:number[]=[];for(let i=0;i<m.getTotalVertices();i++)colors.push(c.r,c.g,c.b,1);m.setVerticesData(VertexBuffer.ColorKind,colors);const batchName=material.backFaceCulling?'#ffffff':'#fffffe';const unified=this.mat(batchName);unified.diffuseColor=Color3.White();unified.backFaceCulling=material.backFaceCulling;m.material=unified;}
 
       const key =
-        Math.floor(m.getBoundingInfo().boundingBox.centerWorld.x/140) + ":" + m.material!.uniqueId +
+        Math.floor(m.getBoundingInfo().boundingBox.centerWorld.x/140) + ":" + Math.floor(m.getBoundingInfo().boundingBox.centerWorld.z/140) + ":" + m.material!.uniqueId +
         "-" +
         (m.metadata?.shadow === false ? "no" : "yes");
       const group = batches.get(key) || [];
       group.push(m);
       batches.set(key, group);
     }
+    const output:Mesh[]=[];
     for (const [key, meshes] of batches) {
       const merged = Mesh.MergeMeshes(
         meshes,
@@ -768,7 +799,7 @@ export class World {
         false,
       );
       if (merged) {
-        merged.name = "scenery " + key;
+        output.push(merged);merged.name = "scenery " + key;
         merged.receiveShadows = true;
         merged.isPickable = false;
         merged.freezeWorldMatrix();
@@ -776,17 +807,25 @@ export class World {
       }
     }
     this.staticMeshes = [];
-    for(const m of this.mats.values())m.freeze();
+    for(const m of this.mats.values())if(m.name!=='#f9e3ae'&&m.name!=='#727774')m.freeze();
+    return output;
   }
-  update(t: number) {
-    this.water.setFloat("time", t);
+  private lastTime=0;
+  update(t: number,minute=540,x=0,z=0) {
+    this.baseRoot.setEnabled(districtAt(x).id==='kozhikode');
+    const dt=Math.min(.1,Math.max(0,t-this.lastTime));this.lastTime=t;const f=1-Math.exp(-dt*1.5),state=lightState(minute);
+    const rain=['rain','light-rain','heavy-rain'].includes(this.weather),cloud=rain?1:this.weather==='cloudy'?.65:0;
+    this.cloud+=(cloud-this.cloud)*f;
+    this.sky.setFloat('warmth',state.warmth);this.sky.setFloat('cloud',this.cloud);this.sky.setFloat('daylight',state.daylight);
+    const angle=(state.hour-6)*Math.PI/12;const sun=new Vector3(Math.cos(angle),Math.max(.04,state.elevation),.3).normalize();
+    this.sky.setVector3('sunDirection',sun);this.sun.direction.copyFrom(sun.scale(-1));this.sun.position.set(x+sun.x*115,115,z+sun.z*115);
+    this.sun.intensity=state.daylight*(1.25-this.cloud*.6);this.fill.intensity=.35+state.daylight*.4;
+    Color3.LerpToRef(C('#dbe7ff'),C('#ffe0aa'),state.warmth,this.sun.diffuse);
+    Color3.LerpToRef(C('#142c44'),C(rain?'#9eafb3':'#c4d9cd'),state.daylight,this.scene.fogColor);
+    this.water.setFloat('time',t);this.water.setFloat('daylight',state.daylight);
+    this.nightLights.update(dt,x,z,state.night);
+    const road=this.mats.get('#727774');if(road){const wet=rain?.22:0;road.specularColor.set(.055+wet,.055+wet,.04+wet);road.specularPower=rain?48:16;}
   }
-  quality(high: boolean) {
-    this.scene.shadowsEnabled = high;
-  }
-  lighting(evening: boolean) {
-    this.sky.setFloat("warmth", evening ? 0.8 : 0.22);
-    this.sun.diffuse = C(evening ? "#ffce98" : "#ffe2ad");
-    this.sun.intensity = evening ? 1.05 : 1.25;
-  }
+  quality(high: boolean,lights=2) {this.scene.shadowsEnabled = high;this.nightLights.quality(lights);}
+  lighting(weather:Weather) {this.weather=weather;}
 }

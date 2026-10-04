@@ -1,13 +1,11 @@
-import {
-  Scene,
-  TransformNode,
-  MeshBuilder,
-  StandardMaterial,
-  Color3,
-  Vector3,
-  DynamicTexture,
-  Mesh,
-} from "@babylonjs/core";
+import {Scene} from '@babylonjs/core/scene.js';
+import {TransformNode} from '@babylonjs/core/Meshes/transformNode.js';
+import {MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder.js';
+import {StandardMaterial} from '@babylonjs/core/Materials/standardMaterial.js';
+import {Color3} from '@babylonjs/core/Maths/math.color.js';
+import {Vector3} from '@babylonjs/core/Maths/math.vector.js';
+import {DynamicTexture} from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
+import {Mesh} from '@babylonjs/core/Meshes/mesh.js';
 const PALETTE = [
   "#da9b52",
   "#507e91",
@@ -17,7 +15,9 @@ const PALETTE = [
   "#b27e9e",
 ];
 export class Avatar {
-  root: TransformNode;
+  root: TransformNode;private shirt:StandardMaterial;private outfit="";
+  private proxy:Mesh;private far=false;
+  private boat?:TransformNode;private scene:Scene;
   private cycle:TransformNode;
   private arms: TransformNode[] = [];
   private legs: TransformNode[] = [];
@@ -26,7 +26,7 @@ export class Avatar {
   private materials: StandardMaterial[] = [];
   private texture: DynamicTexture;
   constructor(scene: Scene, name: string, color: number) {
-    this.root = new TransformNode("explorer " + name, scene);
+    this.scene=scene;this.root = new TransformNode("explorer " + name, scene);
     const mat = (n: string, hex: string) => {
       const m = new StandardMaterial(n, scene);
       m.diffuseColor = Color3.FromHexString(hex);
@@ -34,7 +34,7 @@ export class Avatar {
       this.materials.push(m);
       return m;
     };
-    const shirt = mat("shirt", PALETTE[color % 6]),
+    const shirt = this.shirt = mat("shirt", PALETTE[color % 6]),
       skin = mat("skin", "#b77e53"),
       pants = mat("trousers", "#354d52"),
       shoe = mat("shoes", "#e9ddbd"),
@@ -144,7 +144,9 @@ export class Avatar {
     this.label.position.y = 2.32;
     this.label.billboardMode = Mesh.BILLBOARDMODE_ALL;
     this.label.material = nm;
+    this.proxy=MeshBuilder.CreateCapsule('distant traveller',{height:1.8,radius:.25,tessellation:5,subdivisions:1},scene);this.proxy.parent=this.root;this.proxy.position.y=.9;this.proxy.material=shirt;this.proxy.setEnabled(false);
   }
+  detail(distance:number,range:number){const far=distance>range*(this.far?.85:1.1);if(far===this.far)return;this.far=far;for(const mesh of this.root.getChildMeshes())if(mesh!==this.proxy)mesh.setEnabled(!far);this.proxy.setEnabled(far);}
   animate(dt: number, moving: boolean, sprint: boolean) {
     this.clock += dt * (sprint ? 12 : 8);
     const stride = moving ? Math.sin(this.clock) * 0.6 : 0;
@@ -153,14 +155,16 @@ export class Avatar {
     this.arms[0].rotation.x = -stride * 0.75;
     this.arms[1].rotation.x = stride * 0.75;
   }
-  pose(seated:boolean,cycling:boolean){this.cycle.setEnabled(cycling);if(seated||cycling){this.legs.forEach(l=>l.rotation.x=-1.2);this.arms.forEach(a=>a.rotation.x=-.65);}}
+  pose(seated:boolean,cycling:boolean,boating=false){if(boating&&!this.boat){this.boat=new TransformNode('rowboat',this.scene);this.boat.parent=this.root;const material=new StandardMaterial('boat wood',this.scene);material.diffuseColor=Color3.FromHexString('#9c6747');this.materials.push(material);const hull=MeshBuilder.CreateSphere('boat hull',{diameter:1,segments:8,slice:.5},this.scene);hull.parent=this.boat;hull.scaling.set(1.7,.6,3.5);hull.rotation.z=Math.PI;hull.position.y=.35;hull.material=material;const seat=MeshBuilder.CreateBox('boat bench',{width:1.5,height:.15,depth:.4},this.scene);seat.parent=this.boat;seat.position.y=.4;seat.material=material;}this.boat?.setEnabled(boating);seated=seated||boating;this.cycle.setEnabled(cycling);if(seated||cycling){this.legs.forEach(l=>l.rotation.x=-1.2);this.arms.forEach(a=>a.rotation.x=-.65);}}
   setPosition(x: number, z: number, yaw: number, smooth = 1) {
+    if(Math.hypot(x-this.root.position.x,z-this.root.position.z)>30){this.root.position.x=x;this.root.position.z=z;}
     this.root.position.x += (x - this.root.position.x) * smooth;
     this.root.position.z += (z - this.root.position.z) * smooth;
     let d = yaw - this.root.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
     this.root.rotation.y += d * smooth;
   }
+  setOutfit(hex:string){if(hex&&hex!==this.outfit){this.outfit=hex;this.shirt.diffuseColor=Color3.FromHexString(hex);}}
   dispose() {
     this.root.dispose(false, true);
     this.texture.dispose();

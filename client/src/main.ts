@@ -1,6 +1,6 @@
 import "@fontsource/noto-sans-malayalam/400.css";
 import "./ui/style.css";
-import { Engine } from "@babylonjs/core";
+import {Engine} from '@babylonjs/core/Engines/engine.js';
 import { Game } from "./game/Game";
 const canvas = document.querySelector<HTMLCanvasElement>("#world")!;
 async function boot() {

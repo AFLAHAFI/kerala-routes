@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import {Connection} from '../client/src/multiplayer/Connection';
+const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
+test('client reconnect restores a single session and close removes manager listeners', {timeout:15000},async()=>{
+ const child=spawn(process.execPath,['--import','tsx','server/src/index.ts'],{env:{...process.env,RECONNECT_GRACE_MS:'0',PORT:'3198',NODE_ENV:'production',LOCAL_ONLY:'true'},stdio:'ignore'});
+ const old={window:(globalThis as any).window,location:(globalThis as any).location,storage:(globalThis as any).localStorage};
+ (globalThis as any).window=globalThis;(globalThis as any).location={origin:'http://127.0.0.1:3198',hostname:'127.0.0.1'};const store=new Map();(globalThis as any).localStorage={getItem:(k:string)=>store.get(k),setItem:(k:string,v:string)=>store.set(k,v)};
+ const c=new Connection('http://127.0.0.1:3198');const states:string[]=[];c.onStatus=s=>states.push(s);let welcomes=0;c.onWelcome=()=>welcomes++;
+ try{for(let i=0;i<50;i++){try{if((await fetch('http://127.0.0.1:3198/health')).ok)break;}catch{}await sleep(100);}const w=await c.join('Reconnect check');assert.ok(c.connected);const socket=(c as any).socket;socket.io.engine.close();for(let i=0;i<60&&welcomes<2;i++)await sleep(100);assert.equal(welcomes,2);assert.equal(c.id,w.id);assert.ok(states.includes('Reconnecting'));assert.ok(states.includes('Reconnected'));assert.equal((await (await fetch('http://127.0.0.1:3198/health')).json()).players,1);c.close();assert.equal(socket.io.listeners('reconnect_attempt').length,0);await sleep(100);assert.equal((await (await fetch('http://127.0.0.1:3198/health')).json()).players,0);}finally{c.close();child.kill();(globalThis as any).window=old.window;(globalThis as any).location=old.location;(globalThis as any).localStorage=old.storage;}
+});

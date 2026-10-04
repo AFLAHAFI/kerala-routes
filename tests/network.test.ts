@@ -14,7 +14,7 @@ test(
         process.execPath,
         ["--import", "tsx", "server/src/index.ts"],
         {
-          env: { ...process.env, PORT: String(port), NODE_ENV: "production" },
+          env: { ...process.env,ROOM_CAPACITY:'12',RECONNECT_GRACE_MS:'0',LOCAL_ONLY:'true', PORT: String(port), NODE_ENV: "production" },
           stdio: "pipe",
         },
       );
@@ -96,6 +96,7 @@ test(
       const reconnect = await join("AFLAH");
       assert.equal(reconnect.result.ok, true);
       assert.equal(reconnect.result.welcome!.id, aid);
+      const resumed=reconnect.result.welcome!.players.find(p=>p.id===aid)!;assert.ok(resumed.x>start.x+2);assert.equal(resumed.role,"walker");
       await sleep(100);
       assert.equal(states.get("TEST02")!.players.length, 12);
       assert.equal(

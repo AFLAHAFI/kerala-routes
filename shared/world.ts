@@ -1,3 +1,5 @@
+import {BOAT_DOCKS} from './exploration';
+import {districtAt,districtBounds,districtBuildings} from './districts';
 export type Vec2 = { x: number; z: number };
 export type Obstacle = { x: number; z: number; w: number; d: number };
 export const SPAWN = { x: 8, z: -13 };
@@ -170,7 +172,9 @@ export const PLACES = [
   },
 ];
 export function blocked(x: number, z: number, r = 0.38) {
-  return OBSTACLES.some(
+  const district=districtAt(x);
+  if(BOAT_DOCKS.some(dock=>Math.abs(x-dock.water.x)<dock.water.w/2+r&&Math.abs(z-dock.water.z)<dock.water.d/2+r))return true;
+  return (district.id==='kozhikode'?OBSTACLES:districtBuildings(district)).some(
     (b) => Math.abs(x - b.x) < b.w / 2 + r && Math.abs(z - b.z) < b.d / 2 + r,
   );
 }
@@ -188,16 +192,16 @@ export function move(
   }
   const speed = sprint ? 7.2 : 4.4;
   const steps = Math.max(1, Math.ceil((dt * speed) / 0.25));
-  const out = { ...p };
+  const out = { ...p };const limits=districtBounds(p.x);
   for (let i = 0; i < steps; i++) {
     const nx = Math.max(
-      LIMITS.minX,
-      Math.min(LIMITS.maxX, out.x + (x * speed * dt) / steps),
+      limits.minX,
+      Math.min(limits.maxX, out.x + (x * speed * dt) / steps),
     );
     if (!blocked(nx, out.z)) out.x = nx;
     const nz = Math.max(
-      LIMITS.minZ,
-      Math.min(LIMITS.maxZ, out.z + (z * speed * dt) / steps),
+      limits.minZ,
+      Math.min(limits.maxZ, out.z + (z * speed * dt) / steps),
     );
     if (!blocked(out.x, nz)) out.z = nz;
   }
