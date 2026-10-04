@@ -1,7 +1,7 @@
 import {LEADERBOARD_METRICS,type LeaderboardMetric,type LeaderboardRow} from '../../../shared/leaderboards';
 import {BOAT_DOCKS,cycleStand} from '../../../shared/exploration';
 import {REPORT_REASONS,type ChatMessage,type ReportRequest} from '../../../shared/social';
-import {BUS_MODELS} from '../../../shared/buses';
+import {BUS_MODELS,busLayout} from '../../../shared/buses';
 import {CONNECTIONS,DISTRICTS,districtAt,districtBuildings,roadZ} from '../../../shared/districts';
 import {SHOP_ITEMS,driverLevel} from '../../../shared/progression';
 import {formatTime} from '../../../shared/time';
@@ -349,7 +349,7 @@ export class UI {
     if(bus){
       const next=STOPS.find(s=>s.id===routeStops(bus)[bus.next])!;
       title.textContent=p.role==='driver'?Math.round(Math.abs(bus.speed)*3.6)+' km/h · Route '+bus.route:'Riding Route '+bus.route;
-      detail.textContent=(bus.finished?'Route complete. Start return journey.':`Next: ${next.name} · ${Math.round(distance(bus,next))} m`)+` · ${bus.passengers.length}/10 passengers · Doors ${bus.doors?'open':'closed'}`+(bus.handbrake?' · HANDBRAKE ON':'')+(bus.requested?' · STOP REQUESTED: '+this.players.filter(r=>r.busId===bus.id&&r.destination).map(r=>STOPS.find(s=>s.id===r.destination)?.name).filter(Boolean).join(', '):'');
+      detail.textContent=(bus.finished?'Route complete. Start return journey.':`Next: ${next.name} · ${Math.round(distance(bus,next))} m`)+` · ${bus.passengers.length}/${busLayout(bus.model).capacity} passengers · Doors ${bus.doors?'open':'closed'}`+(bus.handbrake?' · HANDBRAKE ON':'')+(bus.requested?' · STOP REQUESTED: '+this.players.filter(r=>r.busId===bus.id&&r.destination).map(r=>STOPS.find(s=>s.id===r.destination)?.name).filter(Boolean).join(', '):'');
       if(p.role==='driver')buttons=[{label:bus.doors?'Close doors · F':'Open doors · F',action:{type:'door'}},{label:bus.handbrake?'Release handbrake · B':'Handbrake · B',action:{type:'handbrake'}},{label:'Horn · H',action:{type:'horn'}},{label:'Lights · L',action:{type:'light'}},{label:'Auto headlights',action:{type:'auto-lights'}},{label:'◀ Indicator',action:{type:'indicator',target:bus.indicator==='left'?'off':'left'}},{label:'Indicator ▶',action:{type:'indicator',target:bus.indicator==='right'?'off':'right'}},{label:'Route '+(bus.route==='A'?'B':'A'),action:{type:'route',target:bus.route==='A'?'B':'A'}},{label:'Recover bus',action:{type:'recover'}}];
       else buttons=ROUTES[bus.route].stops.map(id=>({label:'Request '+STOPS.find(s=>s.id===id)!.name,action:{type:'request-stop',target:id}}));
       buttons=buttons.filter(b=>b.action.type!=='route');if(p.role==='driver'){const d=districtAt(p.x);for(const id of (d.id==='kozhikode'?['A','B','CM','CW','CK']:d.id==='malappuram'?['M','MP']:[d.route]))buttons.push({label:ROUTES[id].name,action:{type:'route',target:id}});}

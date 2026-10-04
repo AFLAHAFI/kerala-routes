@@ -25,4 +25,4 @@ These are automated logic/network and Babylon NullEngine lifecycle checks, not v
 - Code rollback: deploy the RC1 backup commit on Render and republish that source on Pages. Profile backups should only be restored selectively after review, to avoid overwriting newer play progress.
 
 ## Release status
-Local checks passed. Production publish and smoke verification are recorded in RELEASE_DEPLOYMENT_RC2.md after deployment.
+RC2 is live on GitHub Pages and the existing Render service. Live two-player and restart-save checks passed; see RELEASE_DEPLOYMENT_RC2.md.

@@ -12,3 +12,7 @@
 The server supports either direct server-only Supabase credentials or the existing Edge Function adapter. Both require the migrations before running this V2 server. The laptop launcher clears Supabase variables and uses atomic file-backed profiles; local rankings and moderation history also use laptop files.
 
 Verified: in-memory and file round-trips, serialized save retry behavior, legacy progress migration, mocked existing Supabase profile REST adapter. **Not verified:** executing new SQL on PostgreSQL, new RPC permissions/query plans, real Supabase restart/reload and Edge Function integration. No local PostgreSQL binary was available. Validate these on an isolated development database before production release. Do not reset the existing profiles table.
+
+## RC2 restore point
+
+Remote migration `rc2_profile_restore_point` creates `kr_release_backup_20261004.profiles_before_rc2` as a full copy of the 42 pre-release profiles. RLS is enabled and all PUBLIC/anon/authenticated permissions revoked. Existing public profile schema and the Edge Function are unchanged. Restore only selected profiles after reviewing newer progress.
